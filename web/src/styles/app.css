@@ -13,26 +13,22 @@
   overflow-x: clip;
 }
 
-/* The portal gradient field: rose and teal light over plum, with a dark
- * vertical shade so the top and bottom edges settle into the canvas. */
+/* The portal's default gradient field: rose and gold light over plum. The
+ * appearance engine replaces this inline when a scheme or image is chosen. */
 .app-backdrop {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background:
-    radial-gradient(1200px 860px at 78% 6%, rgba(232, 184, 109, .16), transparent 62%),
-    radial-gradient(1400px 1000px at 14% 28%, rgba(240, 168, 200, .16), transparent 64%),
-    radial-gradient(1000px 760px at 92% 46%, rgba(111, 195, 189, .11), transparent 62%),
-    radial-gradient(1300px 1000px at 50% 112%, rgba(81, 49, 74, .72), transparent 70%),
-    linear-gradient(
-      180deg,
-      rgba(10, 8, 13, .24) 0%,
-      rgba(10, 8, 13, .04) 30%,
-      rgba(10, 8, 13, .18) 68%,
-      rgba(10, 8, 13, .52) 100%
-    ),
-    var(--canvas);
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(ellipse 72% 48% at 12% -6%, rgba(240, 168, 200, .16), transparent 66%),
+    radial-gradient(ellipse 54% 44% at 88% 4%, rgba(232, 184, 109, .09), transparent 68%),
+    linear-gradient(180deg, #17121b 0%, #100d13 58%, #09080a 100%);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transition: filter 240ms ease, background-color 240ms ease;
 }
 
 .app-backdrop::after {
@@ -140,8 +136,8 @@
   border-color: var(--primary-ring);
   background: linear-gradient(
     90deg,
-    rgba(240, 168, 200, .18),
-    rgba(240, 168, 200, .05)
+    color-mix(in srgb, var(--primary) 18%, transparent),
+    color-mix(in srgb, var(--primary) 5%, transparent)
   );
   color: var(--foreground);
 }

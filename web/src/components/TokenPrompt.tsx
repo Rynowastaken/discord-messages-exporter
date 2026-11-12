@@ -55,8 +55,13 @@ export default function TokenPrompt({
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
+    const shell = document.querySelector(".shell");
+    shell?.setAttribute("inert", "");
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      shell?.removeAttribute("inert");
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open, onClose]);
 
   if (!open) return null;

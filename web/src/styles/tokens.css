@@ -31,8 +31,17 @@
   --accent: #e8b86d;
   --accent-soft: rgba(232, 184, 109, .12);
 
+  --secondary: #51314a;
+  --neutral: #151018;
   --danger: #f07178;
   --danger-ink: #f4a0a5;
+
+  /* Theme controls, kept in sync with the generated palette. */
+  --control-bg: var(--primary);
+  --control-border: rgba(240, 168, 200, .72);
+  --control-hover-bg: var(--accent);
+  --control-hover-border: rgba(232, 184, 109, .78);
+  --control-hover-text: #17121b;
 
   /* Glass material */
   --glass: rgba(18, 15, 22, .46);
@@ -238,6 +247,6 @@ button:focus-visible,
 }
 
 ::selection {
-  background: rgba(240, 168, 200, .26);
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
   color: var(--foreground);
 }

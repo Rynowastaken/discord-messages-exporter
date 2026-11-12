@@ -429,29 +429,32 @@ export default function MessagesPage({
       <ExportHeader item={item} active="messages" />
 
       <section className="explorer-toolbar" aria-label="Message filters">
-        <label className="search-field">
-          <Search size={17} strokeWidth={1.5} aria-hidden="true" />
-          <span className="sr-only">Search message text</span>
-          <input
-            ref={searchRef}
-            type="search"
-            value={search}
-            placeholder="Search message text…"
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          {search ? (
-            <button
-              type="button"
-              className="search-clear"
-              aria-label="Clear search"
-              onClick={() => setSearch("")}
-            >
-              <X size={14} strokeWidth={1.5} />
-            </button>
-          ) : (
-            <kbd className="search-key">/</kbd>
-          )}
-        </label>
+        <div className="field filter-search">
+          <span className="field-label">Search</span>
+          <label className="search-field">
+            <Search size={17} strokeWidth={1.5} aria-hidden="true" />
+            <span className="sr-only">Search message text</span>
+            <input
+              ref={searchRef}
+              type="search"
+              value={search}
+              placeholder="Message text…"
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            {search ? (
+              <button
+                type="button"
+                className="search-clear"
+                aria-label="Clear search"
+                onClick={() => setSearch("")}
+              >
+                <X size={14} strokeWidth={1.5} />
+              </button>
+            ) : (
+              <kbd className="search-key">/</kbd>
+            )}
+          </label>
+        </div>
 
         <SelectMenu
           id="authorFilter"
@@ -487,22 +490,29 @@ export default function MessagesPage({
             onChange={(event) => changeFilter({ to: event.target.value })}
           />
         </label>
-        <button
-          type="button"
-          className="glass-button order-button"
-          onClick={() => setOrder((current) => (current === "desc" ? "asc" : "desc"))}
-        >
-          {order === "desc" ? (
-            <ArrowDown size={16} strokeWidth={1.5} aria-hidden="true" />
-          ) : (
-            <ArrowUp size={16} strokeWidth={1.5} aria-hidden="true" />
-          )}
-          {order === "desc" ? "Newest first" : "Oldest first"}
-        </button>
-        {filterActive ? (
-          <button type="button" className="soft-button" onClick={clearFilters}>
-            Clear
+        <div className="field filter-order">
+          <span className="field-label">Order</span>
+          <button
+            type="button"
+            className="glass-button order-button"
+            onClick={() =>
+              setOrder((current) => (current === "desc" ? "asc" : "desc"))
+            }
+          >
+            {order === "desc" ? (
+              <ArrowDown size={16} strokeWidth={1.5} aria-hidden="true" />
+            ) : (
+              <ArrowUp size={16} strokeWidth={1.5} aria-hidden="true" />
+            )}
+            {order === "desc" ? "Newest first" : "Oldest first"}
           </button>
+        </div>
+        {filterActive ? (
+          <div className="filter-action">
+            <button type="button" className="soft-button" onClick={clearFilters}>
+              Clear
+            </button>
+          </div>
         ) : null}
       </section>
 

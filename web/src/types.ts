@@ -170,8 +170,71 @@ export interface StatusResponse {
   jobs: Job[];
 }
 
+export interface UpdateAsset {
+  name: string;
+  url: string;
+  size: number;
+}
+
+export interface UpdateInfo {
+  current_version: string;
+  latest_version: string | null;
+  update_available: boolean;
+  release_url: string | null;
+  published_at: string | null;
+  assets: UpdateAsset[];
+  checked_at: string;
+  repository: string;
+  error: string | null;
+}
+
+export interface UpdateResponse {
+  update: UpdateInfo;
+  version: string;
+}
+
+export interface DirectoryEntry {
+  name: string;
+  path: string;
+}
+
+export interface DirectoryListing {
+  path: string;
+  parent: string | null;
+  home: string;
+  entries: DirectoryEntry[];
+  truncated: boolean;
+  error: string | null;
+}
+
+export interface DirectoryListingResponse {
+  listing: DirectoryListing;
+}
+
+export type ColorScheme =
+  | "content"
+  | "expressive"
+  | "fidelity"
+  | "monochrome"
+  | "neutral"
+  | "tonalSpot"
+  | "vibrant"
+  | "rainbow"
+  | "fruitSalad";
+
+export interface AppearanceSettings {
+  scheme: ColorScheme;
+  colorfulness: number;
+  brightness: number;
+  background_brightness: number;
+  background_blur: number;
+}
+
 export interface AppSettings {
   output_dir: string;
+  appearance: AppearanceSettings;
+  background_url: string | null;
+  background_type: string | null;
 }
 
 export interface AppSettingsResponse {

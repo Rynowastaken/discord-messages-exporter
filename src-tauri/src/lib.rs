@@ -163,6 +163,9 @@ pub fn run() {
         return;
     }
 
+    #[cfg(target_os = "linux")]
+    env::set_var("GTK_THEME", "Adwaita:dark");
+
     tauri::Builder::default()
         .setup(|app| {
             let app_dir = app_dir_for(app.handle())?;
@@ -205,6 +208,7 @@ pub fn run() {
                 WebviewUrl::External(url.parse()?),
             )
             .title("Discord Messages Exporter")
+            .theme(Some(tauri::Theme::Dark))
             .inner_size(1440.0, 900.0)
             .min_inner_size(900.0, 600.0)
             .build()?;

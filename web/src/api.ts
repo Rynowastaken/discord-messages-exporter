@@ -1,5 +1,8 @@
 import type {
   AppSettingsResponse,
+  AppearanceSettings,
+  DirectoryListingResponse,
+  UpdateResponse,
   BrowsePayload,
   BrowseResponse,
   ExportDetailResponse,
@@ -68,11 +71,21 @@ async function request<T>(
 export const api = {
   status: () => request<StatusResponse>("/api/status"),
   settings: () => request<AppSettingsResponse>("/api/settings"),
-  saveSettings: (settings: { output_dir: string }) =>
+  directories: (path = "") =>
+    request<DirectoryListingResponse>(
+      `/api/fs${path ? `?path=${encodeURIComponent(path)}` : ""}`
+    ),
+  update: (refresh = false) =>
+    request<UpdateResponse>(`/api/update${refresh ? "?refresh=1" : ""}`),
+  saveSettings: (settings: {
+    output_dir: string;
+    appearance?: AppearanceSettings;
+    background_data_url?: string | null;
+  }) =>
     request<AppSettingsResponse>("/api/settings", {
       method: "POST",
       body: JSON.stringify(settings),
-    }),
+    }, 120000),
   tokenStatus: () => request<TokenStatus>("/api/token"),
   setToken: (token: string, isBot: boolean, remember: boolean) =>
     request<TokenStatus>("/api/token", {

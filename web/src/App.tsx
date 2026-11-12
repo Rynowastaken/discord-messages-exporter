@@ -4,6 +4,7 @@ import { useHashRoute } from "./hooks/useHashRoute";
 import { api } from "./api";
 import TopBar from "./components/TopBar";
 import TokenPrompt from "./components/TokenPrompt";
+import { applyAppearance } from "./lib/appearance";
 import ConsolePage from "./pages/ConsolePage";
 import DashboardPage from "./pages/DashboardPage";
 import ExplorerPage from "./pages/ExplorerPage";
@@ -42,6 +43,17 @@ export default function App() {
     };
     document.title = `${titles[route.name] ?? "Console"} · Discord Messages Exporter`;
   }, [route.name]);
+
+  useEffect(() => {
+    api
+      .settings()
+      .then((data) => {
+        applyAppearance(data.settings.appearance, data.settings.background_url);
+      })
+      .catch(() => {
+        // The stylesheet's default palette is already applied.
+      });
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -182,6 +194,7 @@ export default function App() {
       <div className="shell">
         <TopBar
           section={section}
+          exportId={"exportId" in route ? route.exportId : undefined}
           tokenSet={jobsState.serverToken || Boolean(sessionToken)}
           onTokenClick={() => setTokenPromptOpen(true)}
         />

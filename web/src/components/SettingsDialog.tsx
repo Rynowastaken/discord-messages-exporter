@@ -1,19 +1,56 @@
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, ReactNode, SyntheticEvent } from "react";
+import type {
+  FormEvent,
+  KeyboardEvent,
+  ReactNode,
+  SyntheticEvent,
+} from "react";
 import {
   CalendarDays,
+  Download,
   FileOutput,
   FolderOutput,
   Gauge,
+  ImageMinus,
+  ImageUp,
   KeyRound,
+  Palette,
+  RefreshCw,
   Settings2,
   X,
 } from "lucide-react";
 import { api } from "../api";
+import FolderBrowser from "./FolderBrowser";
 import { humanizeError } from "../lib/errors";
-import type { Fields, Identity } from "../types";
+import {
+  applyAppearance,
+  COLOR_SCHEME_ORDER,
+  COLOR_SCHEMES,
+  DEFAULT_APPEARANCE,
+  paletteFor,
+  prepareBackgroundImage,
+} from "../lib/appearance";
+import type {
+  AppearanceSettings,
+  Fields,
+  Identity,
+  UpdateInfo,
+} from "../types";
 
 type Section = "token" | "window" | null;
+type SettingsTab = "account" | "export" | "appearance" | "files" | "updates";
+
+const SETTINGS_TABS: Array<{
+  id: SettingsTab;
+  label: string;
+  icon: typeof KeyRound;
+}> = [
+  { id: "account", label: "Account", icon: KeyRound },
+  { id: "export", label: "Export", icon: CalendarDays },
+  { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "files", label: "Files", icon: FolderOutput },
+  { id: "updates", label: "Updates", icon: RefreshCw },
+];
 
 interface SettingsDialogProps {
   open: boolean;
@@ -70,6 +107,27 @@ export default function SettingsDialog({
   const [outputDir, setOutputDir] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
+  const folderBrowserRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<SettingsTab>("export");
+  const panelsRef = useRef<HTMLDivElement>(null);
+  const tabButtonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const [appearance, setAppearance] =
+    useState<AppearanceSettings>(DEFAULT_APPEARANCE);
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [stagedBackground, setStagedBackground] = useState<string | null>(null);
+  const [removeBackground, setRemoveBackground] = useState(false);
+  const [backgroundBusy, setBackgroundBusy] = useState(false);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
+  const appliedAppearance = useRef<{
+    appearance: AppearanceSettings;
+    backgroundUrl: string | null;
+  }>({
+    appearance: DEFAULT_APPEARANCE,
+    backgroundUrl: null,
+  });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -80,14 +138,30 @@ export default function SettingsDialog({
       setError(null);
       setSettingsLoading(true);
       setSettingsReady(false);
+      setFolderBrowserOpen(false);
+      setStagedBackground(null);
+      setRemoveBackground(false);
+      setBackgroundBusy(false);
+      setTab(initialSection === "token" ? "account" : "export");
       void api
         .settings()
         .then((data) => {
           setOutputDir(data.settings.output_dir);
+          setAppearance(data.settings.appearance);
+          setBackgroundUrl(data.settings.background_url);
+          appliedAppearance.current = {
+            appearance: data.settings.appearance,
+            backgroundUrl: data.settings.background_url,
+          };
+          applyAppearance(
+            data.settings.appearance,
+            data.settings.background_url
+          );
           setSettingsReady(true);
         })
         .catch((err: unknown) => setError(humanizeError(err)))
         .finally(() => setSettingsLoading(false));
+      void checkUpdates();
       if (!dialog.open) {
         dialog.showModal();
         dialog.scrollTop = 0;
@@ -144,6 +218,62 @@ export default function SettingsDialog({
     setError(null);
   }
 
+  useEffect(() => {
+    if (!folderBrowserOpen) return;
+    requestAnimationFrame(() => {
+      folderBrowserRef.current?.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    });
+  }, [folderBrowserOpen]);
+
+  useEffect(() => {
+    if (!open || !settingsReady) return;
+    const preview = stagedBackground ?? (removeBackground ? null : backgroundUrl);
+    applyAppearance(appearance, preview);
+  }, [
+    open,
+    settingsReady,
+    appearance,
+    stagedBackground,
+    removeBackground,
+    backgroundUrl,
+  ]);
+
+  async function checkUpdates(force = false) {
+    setUpdateLoading(true);
+    try {
+      const data = await api.update(force);
+      setUpdate(data.update);
+    } catch (err) {
+      setUpdate({
+        current_version: "",
+        latest_version: null,
+        update_available: false,
+        release_url: null,
+        published_at: null,
+        assets: [],
+        checked_at: "",
+        repository: "",
+        error: humanizeError(err),
+      });
+    } finally {
+      setUpdateLoading(false);
+    }
+  }
+
+  function updateAssetLabel(name: string): string {
+    const lower = name.toLowerCase();
+    if (lower.endsWith(".zip")) return "Windows portable";
+    if (lower.endsWith(".appimage")) return "Linux AppImage";
+    if (lower.endsWith(".deb")) return "Linux .deb";
+    if (lower.endsWith(".rpm")) return "Linux .rpm";
+    if (lower.endsWith(".msi")) return "Windows .msi";
+    if (lower.endsWith(".exe")) return "Windows installer";
+    return name;
+  }
+
   function chooseAttachmentMode(mode: "files" | "metadata" | "exclude") {
     setDraft((current) => ({
       ...current,
@@ -155,11 +285,63 @@ export default function SettingsDialog({
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
     event.preventDefault();
-    if (!saving) onClose();
+    if (!saving) dismiss();
+  }
+
+  function dismiss() {
+    applyAppearance(
+      appliedAppearance.current.appearance,
+      appliedAppearance.current.backgroundUrl
+    );
+    onClose();
+  }
+
+  function selectTab(next: SettingsTab) {
+    setTab(next);
+    requestAnimationFrame(() => {
+      panelsRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    });
+  }
+
+  function handleTabKey(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) {
+    const forward =
+      event.key === "ArrowDown" || event.key === "ArrowRight";
+    const backward = event.key === "ArrowUp" || event.key === "ArrowLeft";
+    if (!forward && !backward && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+    event.preventDefault();
+    let nextIndex = forward ? index + 1 : index - 1;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = SETTINGS_TABS.length - 1;
+    if (nextIndex < 0) nextIndex = SETTINGS_TABS.length - 1;
+    if (nextIndex >= SETTINGS_TABS.length) nextIndex = 0;
+    const next = SETTINGS_TABS[nextIndex];
+    selectTab(next.id);
+    tabButtonsRef.current[nextIndex]?.focus();
   }
 
   function handleNativeClose() {
     if (open) onClose();
+  }
+
+  async function chooseBackgroundImage(file: File | undefined) {
+    if (!file) return;
+    setBackgroundBusy(true);
+    setError(null);
+    try {
+      const prepared = await prepareBackgroundImage(file);
+      setStagedBackground(prepared);
+      setRemoveBackground(false);
+    } catch (err) {
+      setError(humanizeError(err));
+    } finally {
+      setBackgroundBusy(false);
+      if (backgroundInputRef.current) backgroundInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -180,7 +362,32 @@ export default function SettingsDialog({
         rate: Number(draft.rate),
       };
       if (settingsReady) {
-        await api.saveSettings({ output_dir: outputDir.trim() });
+        const payload: {
+          output_dir: string;
+          appearance: AppearanceSettings;
+          background_data_url?: string | null;
+        } = {
+          output_dir: outputDir.trim(),
+          appearance,
+        };
+        if (stagedBackground) {
+          payload.background_data_url = stagedBackground;
+        } else if (removeBackground) {
+          payload.background_data_url = null;
+        }
+        const saved = await api.saveSettings(payload);
+        appliedAppearance.current = {
+          appearance: saved.settings.appearance,
+          backgroundUrl: saved.settings.background_url,
+        };
+        setAppearance(saved.settings.appearance);
+        setBackgroundUrl(saved.settings.background_url);
+        setStagedBackground(null);
+        setRemoveBackground(false);
+        applyAppearance(
+          saved.settings.appearance,
+          saved.settings.background_url
+        );
       }
       await onSave(normalized, serverToken ? "" : draftToken);
       onClose();
@@ -237,6 +444,10 @@ export default function SettingsDialog({
     identityLine = "No token configured.";
   }
 
+  const backgroundPreview =
+    stagedBackground ?? (removeBackground ? null : backgroundUrl);
+  const pendingRemoval = removeBackground && Boolean(backgroundUrl);
+
   return (
     <dialog
       ref={dialogRef}
@@ -256,14 +467,14 @@ export default function SettingsDialog({
                 Settings
               </h2>
               <p className="settings-sub">
-                Export defaults and the token used to run them.
+                Export defaults, appearance, and the token behind them.
               </p>
             </div>
           </div>
           <button
             type="button"
             className="icon-button"
-            onClick={onClose}
+            onClick={dismiss}
             disabled={saving}
             aria-label="Close settings"
           >
@@ -271,6 +482,47 @@ export default function SettingsDialog({
           </button>
         </div>
 
+        <div className="settings-body">
+          <nav
+            className="settings-nav"
+            role="tablist"
+            aria-label="Settings categories"
+            aria-orientation="vertical"
+          >
+            {SETTINGS_TABS.map((item, index) => {
+              const Icon = item.icon;
+              const selected = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  ref={(node) => {
+                    tabButtonsRef.current[index] = node;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`settings-tab-${item.id}`}
+                  aria-selected={selected}
+                  aria-controls={`settings-panel-${item.id}`}
+                  tabIndex={selected ? 0 : -1}
+                  className="settings-nav-item"
+                  onClick={() => selectTab(item.id)}
+                  onKeyDown={(event) => handleTabKey(event, index)}
+                >
+                  <Icon size={15} strokeWidth={1.5} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="settings-panels" ref={panelsRef}>
+        {tab === "account" ? (
+        <div
+          className="settings-panel"
+          role="tabpanel"
+          id="settings-panel-account"
+          aria-labelledby="settings-tab-account"
+        >
         <section className="settings-section" aria-labelledby="settings-token">
           <div className="settings-section-head">
             <KeyRound size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -334,7 +586,16 @@ export default function SettingsDialog({
             </button>
           ) : null}
         </section>
+        </div>
+        ) : null}
 
+        {tab === "export" ? (
+        <div
+          className="settings-panel"
+          role="tabpanel"
+          id="settings-panel-export"
+          aria-labelledby="settings-tab-export"
+        >
         <section className="settings-section" aria-labelledby="settings-window">
           <div className="settings-section-head">
             <CalendarDays size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -421,7 +682,334 @@ export default function SettingsDialog({
             In whole-server mode, ranges apply to each channel.
           </p>
         </section>
+        </div>
+        ) : null}
 
+        {tab === "appearance" ? (
+        <div
+          className="settings-panel"
+          role="tabpanel"
+          id="settings-panel-appearance"
+          aria-labelledby="settings-tab-appearance"
+        >
+        <section
+          className="settings-section"
+          aria-labelledby="settings-appearance"
+        >
+          <h3 className="sr-only" id="settings-appearance">
+            Appearance
+          </h3>
+          <div className="appearance-label-row">
+            <span className="field-label">Color scheme</span>
+            <span className="appearance-live-note">Live preview</span>
+          </div>
+          <div
+            className="appearance-schemes"
+            role="radiogroup"
+            aria-label="Color scheme"
+          >
+            {COLOR_SCHEME_ORDER.map((id) => {
+              const palette = paletteFor({ ...appearance, scheme: id });
+              const selected = appearance.scheme === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={`appearance-scheme${selected ? " is-active" : ""}`}
+                  onClick={() => {
+                    setAppearance((current) => ({ ...current, scheme: id }));
+                    setError(null);
+                  }}
+                >
+                  <span className="appearance-swatch" aria-hidden="true">
+                    {palette.slice(0, 3).map((color, index) => (
+                      <span
+                        key={`${id}-${index}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </span>
+                  <span className="appearance-scheme-name">
+                    {COLOR_SCHEMES[id].name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="appearance-sliders">
+            <label className="appearance-slider">
+              <span className="appearance-slider-head">
+                <span>Colorfulness</span>
+                <output>{appearance.colorfulness.toFixed(2)}</output>
+              </span>
+              <input
+                type="range"
+                min="0.5"
+                max="1.5"
+                step="0.05"
+                value={appearance.colorfulness}
+                onChange={(event) => {
+                  setAppearance((current) => ({
+                    ...current,
+                    colorfulness: Number(event.target.value),
+                  }));
+                  setError(null);
+                }}
+              />
+            </label>
+            <label className="appearance-slider">
+              <span className="appearance-slider-head">
+                <span>Brightness</span>
+                <output>{appearance.brightness.toFixed(2)}</output>
+              </span>
+              <input
+                type="range"
+                min="0.5"
+                max="1.5"
+                step="0.05"
+                value={appearance.brightness}
+                onChange={(event) => {
+                  setAppearance((current) => ({
+                    ...current,
+                    brightness: Number(event.target.value),
+                  }));
+                  setError(null);
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="settings-subsection">
+            <span className="field-label">Background image</span>
+            <div className="appearance-background">
+              <div
+                className={`appearance-background-preview${
+                  backgroundPreview ? "" : " is-empty"
+                }`}
+                style={
+                  backgroundPreview
+                    ? { backgroundImage: `url("${backgroundPreview}")` }
+                    : undefined
+                }
+                aria-hidden="true"
+              >
+                {backgroundPreview ? null : <span>Portal gradient</span>}
+              </div>
+              <div className="appearance-background-actions">
+                <input
+                  ref={backgroundInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                  onChange={(event) =>
+                    void chooseBackgroundImage(event.target.files?.[0])
+                  }
+                />
+                <button
+                  type="button"
+                  className="soft-button"
+                  disabled={backgroundBusy}
+                  onClick={() => backgroundInputRef.current?.click()}
+                >
+                  <ImageUp size={14} strokeWidth={1.5} aria-hidden="true" />
+                  {backgroundBusy
+                    ? "Preparing…"
+                    : backgroundPreview
+                      ? "Change image"
+                      : "Choose image"}
+                </button>
+                {backgroundPreview ? (
+                  <button
+                    type="button"
+                    className="soft-button"
+                    disabled={backgroundBusy}
+                    onClick={() => {
+                      setStagedBackground(null);
+                      setRemoveBackground(true);
+                      setError(null);
+                    }}
+                  >
+                    <ImageMinus size={14} strokeWidth={1.5} aria-hidden="true" />
+                    Remove
+                  </button>
+                ) : pendingRemoval ? (
+                  <button
+                    type="button"
+                    className="soft-button"
+                    onClick={() => setRemoveBackground(false)}
+                  >
+                    Undo
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <p className="settings-hint">
+              PNG, JPEG, or WebP. The image is scaled to 1280px and saved on
+              this server, so every browser sees it.
+            </p>
+          </div>
+
+          <div className="appearance-sliders">
+            <label
+              className={`appearance-slider${
+                backgroundPreview ? "" : " is-disabled"
+              }`}
+            >
+              <span className="appearance-slider-head">
+                <span>Background brightness</span>
+                <output>{appearance.background_brightness}%</output>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="200"
+                step="5"
+                disabled={!backgroundPreview}
+                value={appearance.background_brightness}
+                onChange={(event) => {
+                  setAppearance((current) => ({
+                    ...current,
+                    background_brightness: Number(event.target.value),
+                  }));
+                  setError(null);
+                }}
+              />
+            </label>
+            <label
+              className={`appearance-slider${
+                backgroundPreview ? "" : " is-disabled"
+              }`}
+            >
+              <span className="appearance-slider-head">
+                <span>Background blur</span>
+                <output>{appearance.background_blur}%</output>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                disabled={!backgroundPreview}
+                value={appearance.background_blur}
+                onChange={(event) => {
+                  setAppearance((current) => ({
+                    ...current,
+                    background_blur: Number(event.target.value),
+                  }));
+                  setError(null);
+                }}
+              />
+            </label>
+          </div>
+          <p className="settings-hint">
+            100% brightness keeps the original image; lower values deepen the
+            overlay, higher values reveal more of it. Blur softens the image
+            behind the glass without hiding it.
+          </p>
+        </section>
+        </div>
+        ) : null}
+
+        {tab === "updates" ? (
+        <div
+          className="settings-panel"
+          role="tabpanel"
+          id="settings-panel-updates"
+          aria-labelledby="settings-tab-updates"
+        >
+        <section
+          className="settings-section"
+          aria-labelledby="settings-updates"
+        >
+          <h3 className="sr-only" id="settings-updates">
+            Updates
+          </h3>
+          <div className="update-panel">
+            <div className="update-copy">
+              <strong>
+                {updateLoading
+                  ? "Checking GitHub…"
+                  : update?.update_available
+                    ? `Version ${update.latest_version} is available`
+                    : update?.error
+                      ? "Could not check for updates"
+                      : update?.latest_version
+                        ? `Up to date — v${update.current_version}`
+                        : `Version ${update?.current_version || "…"}`}
+              </strong>
+              <span>
+                {update?.error
+                  ? update.error
+                  : update?.update_available
+                    ? `You have v${update.current_version}. A newer release is on GitHub.`
+                    : "Checks the latest GitHub release. Nothing is installed automatically."}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="soft-button"
+              onClick={() => void checkUpdates(true)}
+              disabled={updateLoading}
+            >
+              <RefreshCw
+                size={14}
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+              {updateLoading ? "Checking…" : "Check now"}
+            </button>
+          </div>
+          {update?.update_available ? (
+            <div className="update-actions">
+              {update.release_url ? (
+                <a
+                  className="primary-button"
+                  href={update.release_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Download size={15} strokeWidth={1.5} aria-hidden="true" />
+                  Open release
+                </a>
+              ) : null}
+              {update.assets
+                .filter((asset) =>
+                  /\.(zip|appimage|deb|rpm|msi|exe)$/i.test(asset.name)
+                )
+                .slice(0, 4)
+                .map((asset) => (
+                  <a
+                    className="soft-button"
+                    href={asset.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    key={asset.name}
+                  >
+                    <span title={asset.name}>
+                      {updateAssetLabel(asset.name)}
+                    </span>
+                  </a>
+                ))}
+            </div>
+          ) : null}
+          <p className="settings-hint">
+            Private repositories need a server-side <code>GITHUB_TOKEN</code>{" "}
+            for update checks.
+          </p>
+        </section>
+        </div>
+        ) : null}
+
+        {tab === "files" ? (
+        <div
+          className="settings-panel"
+          role="tabpanel"
+          id="settings-panel-files"
+          aria-labelledby="settings-tab-files"
+        >
         <section
           className="settings-section"
           aria-labelledby="settings-location"
@@ -456,17 +1044,39 @@ export default function SettingsDialog({
                   setError(null);
                 }}
               />
+              <button
+                type="button"
+                className="settings-path-browse"
+                onClick={() => setFolderBrowserOpen(true)}
+                disabled={settingsLoading}
+              >
+                Browse
+              </button>
               {outputDir ? (
                 <button
                   type="button"
                   className="settings-path-reset"
                   onClick={() => setOutputDir("")}
+                  title="Use the default job folder"
                 >
-                  Use default
+                  Reset
                 </button>
               ) : null}
             </div>
           </div>
+          {folderBrowserOpen ? (
+            <div ref={folderBrowserRef}>
+              <FolderBrowser
+                initialPath={outputDir || undefined}
+                onClose={() => setFolderBrowserOpen(false)}
+                onSelect={(path) => {
+                  setOutputDir(path);
+                  setFolderBrowserOpen(false);
+                  setError(null);
+                }}
+              />
+            </div>
+          ) : null}
           <p className="settings-hint">
             Finished JSON files and downloaded attachments are copied into a
             named folder here. Leave it blank to keep everything inside the
@@ -556,6 +1166,10 @@ export default function SettingsDialog({
             </label>
           </div>
         </section>
+        </div>
+        ) : null}
+          </div>
+        </div>
 
         {error ? (
           <p className="console-error" role="alert">
@@ -567,7 +1181,7 @@ export default function SettingsDialog({
           <button
             type="button"
             className="glass-button"
-            onClick={onClose}
+            onClick={dismiss}
             disabled={saving}
           >
             Cancel

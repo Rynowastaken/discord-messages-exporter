@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   Archive,
+  Download,
   FolderOpen,
   LayoutDashboard,
   Radio,
 } from "lucide-react";
 import { api } from "../api";
 import { compact } from "../lib/format";
-import type { ExportSummary } from "../types";
+import type { ExportSummary, UpdateInfo } from "../types";
 
 interface TopBarProps {
   section: "dashboard" | "export" | "explorer";
+  exportId?: string;
   tokenSet: boolean;
   onTokenClick: () => void;
 }
@@ -28,10 +30,27 @@ const LINKS = [
 
 export default function TopBar({
   section,
+  exportId,
   tokenSet,
   onTokenClick,
 }: TopBarProps) {
   const [exports, setExports] = useState<ExportSummary[]>([]);
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .update()
+      .then((data) => {
+        if (!cancelled) setUpdate(data.update);
+      })
+      .catch(() => {
+        // Update checks are optional and never block the console.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,8 +102,11 @@ export default function TopBar({
           {exports.map((item) => (
             <a
               key={item.id}
-              className="sidebar-export"
+              className={`sidebar-export${
+                item.id === exportId ? " sidebar-export--active" : ""
+              }`}
               href={`#/explorer/${encodeURIComponent(item.id)}/messages`}
+              aria-current={item.id === exportId ? "page" : undefined}
               title={item.name}
             >
               <span>{item.name}</span>
@@ -102,6 +124,18 @@ export default function TopBar({
       ) : null}
 
       <div className="sidebar-foot">
+        {update?.update_available ? (
+          <a
+            className="sidebar-update"
+            href={update.release_url ?? "#"}
+            target="_blank"
+            rel="noreferrer"
+            title="Open the latest GitHub release"
+          >
+            <Download size={13} strokeWidth={1.5} aria-hidden="true" />
+            Update v{update.latest_version}
+          </a>
+        ) : null}
         <button
           type="button"
           className="sidebar-token"

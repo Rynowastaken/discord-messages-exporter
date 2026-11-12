@@ -1156,17 +1156,7 @@ export default function ExportForm({
             </div>
             <div>
               <dt>Window</dt>
-              <dd>
-                {windowValue(fields)}
-                <button
-                  type="button"
-                  className="preview-edit"
-                  onClick={() => openSettings("window")}
-                  aria-haspopup="dialog"
-                >
-                  Edit
-                </button>
-              </dd>
+              <dd>{windowValue(fields)}</dd>
             </div>
             <div>
               <dt>Output</dt>

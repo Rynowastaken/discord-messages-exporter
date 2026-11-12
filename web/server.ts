@@ -91,8 +91,12 @@ import {
   configuredOutputDir,
   currentSettings,
   loadSettings,
+  MAX_SETTINGS_BODY,
+  readBackground,
   saveSettings,
 } from "./settings.js";
+import { checkForUpdates } from "./updates.js";
+import { listDirectories } from "./fs-browser.js";
 import {
   downloadExportAttachments,
   readAttachmentManifest,
@@ -1329,13 +1333,16 @@ function addJob(job: Job): void {
 
 // ------------------------------------------------------------------ routing
 
-async function readJson(req: IncomingMessage): Promise<Json> {
+async function readJson(
+  req: IncomingMessage,
+  limit = MAX_BODY
+): Promise<Json> {
   const declared = Number.parseInt(
     text(req.headers["content-length"]),
     10
   );
-  if (Number.isFinite(declared) && (declared <= 0 || declared > MAX_BODY)) {
-    if (declared > MAX_BODY) req.resume();
+  if (Number.isFinite(declared) && (declared <= 0 || declared > limit)) {
+    if (declared > limit) req.resume();
     return {};
   }
   const chunks: Buffer[] = [];
@@ -1344,7 +1351,7 @@ async function readJson(req: IncomingMessage): Promise<Json> {
     for await (const chunk of req) {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += buffer.length;
-      if (size > MAX_BODY) {
+      if (size > limit) {
         req.destroy();
         return {};
       }
@@ -2302,13 +2309,64 @@ async function handle(
       apiError(res, "cross-origin request refused", 403);
       return;
     }
+    if (pathname === "/api/fs") {
+      if (method !== "GET") {
+        apiError(res, "method not allowed", 405);
+        return;
+      }
+      sendJson(res, {
+        listing: await listDirectories(url.searchParams.get("path") ?? ""),
+      });
+      return;
+    }
+    if (pathname === "/api/update") {
+      if (method !== "GET") {
+        apiError(res, "method not allowed", 405);
+        return;
+      }
+      const force = url.searchParams.get("refresh") === "1";
+      sendJson(res, {
+        update: await checkForUpdates(force),
+        version: VERSION,
+      });
+      return;
+    }
+    if (pathname === "/api/settings/background") {
+      if (method !== "GET") {
+        apiError(res, "method not allowed", 405);
+        return;
+      }
+      const background = await readBackground();
+      if (!background) {
+        apiError(res, "no background image", 404);
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": background.contentType,
+        "Content-Length": String(background.body.length),
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+      });
+      res.end(background.body);
+      return;
+    }
     if (pathname === "/api/settings") {
       if (method === "GET") {
         sendJson(res, { settings: currentSettings() });
         return;
       }
       if (method === "POST") {
-        const body = await readJson(req);
+        const declared = Number.parseInt(
+          text(req.headers["content-length"]),
+          10
+        );
+        if (Number.isFinite(declared) && declared > MAX_SETTINGS_BODY) {
+          req.resume();
+          apiError(res, "the background image is too large", 413);
+          return;
+        }
+        const body = await readJson(req, MAX_SETTINGS_BODY);
         try {
           sendJson(res, { settings: await saveSettings(body) });
         } catch (err) {
