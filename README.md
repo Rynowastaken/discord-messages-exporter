@@ -103,9 +103,13 @@ The web console opens on a dashboard with links to:
 
 - **Export** — the crawl console: author, whole channel, or whole server;
   live progress, stop/resume, and JSON download.
-- **Settings** — the Discord connection, date window, crawl pacing, attachment
-  handling, and a global export save folder. Finished jobs are copied into a
-  named folder there, or stay in their job folder when the field is blank.
+- **Settings** — five tabs. **Account** holds the Discord connection;
+  **Export** sets the date window and crawl pacing; **Appearance** offers nine
+  generated color schemes, colorfulness and brightness, and a custom background
+  image with its own brightness and blur; **Files** sets attachment handling and
+  a global export save folder; **Updates** checks the latest GitHub release.
+  Finished jobs are copied into a named folder when a save folder is set, or
+  stay in their job folder when it is blank.
 - **Explorer** — finished job exports and JSON files you load. Each export is
   indexed locally (SQLite) and gets separate **Messages** and **Insights**
   pages. Messages supports full-text search plus author, channel, and date
@@ -231,7 +235,7 @@ The `url` and `proxy_url` values are signed CDN links that expire, so treat
 them as a record of what was attached, not a durable link. `--no-attachments`
 drops the records; `--download-attachments` copies the bytes into
 `<work>/attachments/` and writes a manifest there. In the console, the same
-choice is under **Export settings → Output**: metadata only, download files,
+choice is under **Settings → Files → Output**: metadata only, download files,
 or exclude attachments.
 
 ## How it works
