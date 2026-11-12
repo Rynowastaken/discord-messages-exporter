@@ -53,7 +53,7 @@ const nodeSource = realpathSync(
 );
 const nodeTarget = join(appDir, nodeName);
 copyFileSync(nodeSource, nodeTarget);
-chmodSync(nodeTarget, 0o755);
+if (!windows) chmodSync(nodeTarget, 0o755);
 cpSync(webDist, join(appDir, "web-dist"), { recursive: true });
 
 // Keep the target-triple name around for tooling that expects it, but the
