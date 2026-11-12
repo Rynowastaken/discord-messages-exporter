@@ -105,7 +105,10 @@ The web console opens on a dashboard with links to:
 - **Explorer** — finished job exports and JSON files you load. Each export is
   indexed locally (SQLite) and gets separate **Messages** and **Insights**
   pages. Messages supports full-text search plus author, channel, and date
-  filters, with a detail pane for attachments, reactions, replies, and embeds.
+  filters. Message text renders Discord markdown — bold, italics, inline and
+  fenced code, quotes, lists, links, mentions, spoilers, timestamps — and
+  custom emoji, with a detail pane for attachments, reactions, replies, and
+  embeds.
   Insights has behavior rates (night owl, replies, attachments, links, median
   length), archive records (busiest day/hour, longest quiet stretch, longest
   streak), activity over time, a weekday-by-hour posting clock, a clickable word

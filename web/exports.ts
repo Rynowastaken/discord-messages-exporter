@@ -223,18 +223,36 @@ function cleanName(value: string): string {
   return base.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, MAX_NAME);
 }
 
+type InferredMode = "author" | "channel" | "server" | null;
+
+function inferredMode(metadata: ExportMetadata | null): InferredMode {
+  if (!metadata) return null;
+  if (
+    metadata.mode === "author" ||
+    metadata.mode === "channel" ||
+    metadata.mode === "server"
+  ) {
+    return metadata.mode;
+  }
+  if (metadata.target_user_id) return "author";
+  if ((metadata.channels?.length ?? 0) > 0) return "server";
+  if (metadata.channel?.id || metadata.channel?.name) return "channel";
+  return null;
+}
+
 function labelFor(
   metadata: ExportMetadata | null,
   fallback: string
 ): string {
   if (!metadata) return fallback;
-  if (metadata.mode === "server") {
+  const mode = inferredMode(metadata);
+  if (mode === "server") {
     return metadata.guild?.name || `server ${metadata.guild?.id ?? ""}`;
   }
-  if (metadata.mode === "channel" && metadata.channel?.name) {
+  if (mode === "channel" && metadata.channel?.name) {
     return `#${metadata.channel.name}`;
   }
-  if (metadata.mode === "author" || (!metadata.mode && metadata.target_user_id)) {
+  if (mode === "author") {
     const person =
       metadata.author?.global_name ||
       metadata.author?.name ||
@@ -243,7 +261,7 @@ function labelFor(
     if (person) return person;
     if (metadata.target_user_id) return `user ${metadata.target_user_id}`;
   }
-  if (metadata.mode === "channel" || metadata.channel?.name) {
+  if (mode === "channel" || metadata.channel?.name) {
     return metadata.channel?.name
       ? `#${metadata.channel.name}`
       : fallback;
@@ -396,10 +414,7 @@ async function considerSource(
   const record: ExportRecord = {
     id,
     kind,
-    name:
-      previous?.name && previous.name !== `job ${id.slice(4)}` && kind !== "import"
-        ? previous.name
-        : labelFor(metadata, displayName),
+    name: labelFor(metadata, previous?.name ?? displayName),
     status: fresh ? "ready" : "unindexed",
     progress: fresh ? 1 : 0,
     indexed: fresh ? (indexMeta?.message_count ?? 0) : 0,

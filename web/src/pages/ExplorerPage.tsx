@@ -14,7 +14,15 @@ import { bytes, compact, plural, shortDate } from "../lib/format";
 import type { ExportSummary } from "../types";
 
 function modeLabel(item: ExportSummary): string {
-  const mode = item.metadata?.mode;
+  const mode =
+    item.metadata?.mode ??
+    (item.metadata?.target_user_id
+      ? "author"
+      : (item.metadata?.channels?.length ?? 0) > 0
+        ? "server"
+        : item.metadata?.channel
+          ? "channel"
+          : undefined);
   if (mode === "server") {
     return item.metadata?.guild?.name
       ? `Server · ${item.metadata.guild.name}`
@@ -25,7 +33,7 @@ function modeLabel(item: ExportSummary): string {
       ? `Channel · #${item.metadata.channel.name}`
       : "Whole channel";
   }
-  if (mode === "author" || (!mode && item.metadata?.target_user_id)) {
+  if (mode === "author") {
     const channel = item.metadata?.channel?.name;
     return channel ? `Author · ${channel}` : "One author";
   }

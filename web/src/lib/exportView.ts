@@ -4,8 +4,19 @@ import type {
   ExplorerMessage,
 } from "../types";
 
+type InferredMode = "author" | "channel" | "server" | null;
+
+function inferredMode(metadata: ExportMetadata | null | undefined): InferredMode {
+  if (!metadata) return null;
+  if (metadata.mode) return metadata.mode;
+  if (metadata.target_user_id) return "author";
+  if ((metadata.channels?.length ?? 0) > 0) return "server";
+  if (metadata.channel?.id || metadata.channel?.name) return "channel";
+  return null;
+}
+
 export function exportModeLabel(item: ExportSummary): string {
-  const mode = item.metadata?.mode;
+  const mode = inferredMode(item.metadata);
   if (mode === "server") {
     return item.metadata?.guild?.name
       ? `Server · ${item.metadata.guild.name}`
@@ -16,7 +27,7 @@ export function exportModeLabel(item: ExportSummary): string {
       ? `Channel · #${item.metadata.channel.name}`
       : "Whole channel";
   }
-  if (mode === "author" || (!mode && item.metadata?.target_user_id)) {
+  if (mode === "author") {
     const channel = item.metadata?.channel?.name;
     return channel ? `Author · ${channel}` : "One author";
   }
@@ -26,7 +37,7 @@ export function exportModeLabel(item: ExportSummary): string {
 export function exportScopeLine(item: ExportSummary): string {
   const metadata = item.metadata;
   if (!metadata) return item.kind === "job" ? "Job export" : "Loaded file";
-  if (metadata.mode === "server") {
+  if (inferredMode(metadata) === "server") {
     const channels = metadata.channels?.length ?? 0;
     return `${metadata.guild?.name ?? "Server"}${
       channels ? ` · ${channels} channels` : ""
