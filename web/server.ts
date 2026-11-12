@@ -2422,6 +2422,18 @@ export async function main(
     return 2;
   }
 
+  // The desktop shell starts this server as a child. If the shell dies
+  // without running its exit cleanup, the reparented process exits itself.
+  const parentPid = Number(
+    process.env.DISCORD_MESSAGES_EXPORTER_PARENT_PID ?? ""
+  );
+  if (Number.isInteger(parentPid) && parentPid > 0) {
+    const watcher = setInterval(() => {
+      if (process.ppid !== parentPid) process.exit(0);
+    }, 2000);
+    watcher.unref();
+  }
+
   await mkdir(RUNS_DIR, { recursive: true });
   if (!environmentToken()) {
     storedToken = await readStoredToken();
@@ -2477,8 +2489,13 @@ export async function main(
 }
 
 function isDirectInvocation(): boolean {
+  if (process.env.DISCORD_MESSAGES_EXPORTER_MAIN === "1") return true;
   if (!process.argv[1]) return false;
   try {
+    // A Node SEA binary has no import.meta.url; argv[1] is the executable.
+    if (realpathSync(process.argv[1]) === realpathSync(process.execPath)) {
+      return true;
+    }
     return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
   } catch {
     return false;

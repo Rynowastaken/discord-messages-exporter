@@ -10,3 +10,7 @@ web/exports/
 .env
 .env.*
 *.log
+src-tauri/target/
+src-tauri/gen/
+src-tauri/resources/app/
+build/desktop/

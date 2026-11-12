@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Desktop window for the local exporter console",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

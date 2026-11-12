@@ -19,10 +19,14 @@ function findRepoRoot(start: string): string {
   return start;
 }
 
-const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+// A Node SEA bundle is CommonJS, so import.meta.url is not available there.
+// The desktop launcher supplies explicit directories in that case.
+const MODULE_DIR =
+  typeof __dirname === "string"
+    ? __dirname
+    : dirname(fileURLToPath(import.meta.url));
 export const REPO_DIR = findRepoRoot(MODULE_DIR);
 export const WEB_DIR = join(REPO_DIR, "web");
-export const DIST_DIR = join(WEB_DIR, "dist");
 
 function configuredPath(envNames: string[], fallback: string): string {
   for (const envName of envNames) {
@@ -31,6 +35,11 @@ function configuredPath(envNames: string[], fallback: string): string {
   }
   return fallback;
 }
+
+export const DIST_DIR = configuredPath(
+  ["DISCORD_MESSAGES_EXPORTER_DIST", "DISCORD_AUTHOR_EXPORT_DIST"],
+  join(WEB_DIR, "dist")
+);
 
 export const RUNS_DIR = configuredPath(
   ["DISCORD_MESSAGES_EXPORTER_RUNS", "DISCORD_AUTHOR_EXPORT_RUNS"],

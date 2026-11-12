@@ -122,6 +122,29 @@ An export is only read, never modified. Loaded files are copied to
 `DISCORD_MESSAGES_EXPORTER_EXPORTS` to relocate loaded exports and
 `DISCORD_MESSAGES_EXPORTER_RUNS` to relocate job runs.
 
+## Desktop app
+
+The same console can be wrapped as a Tauri desktop application. The desktop
+shell starts a bundled Node runtime and the local server, so users do not need
+Node installed.
+
+Prerequisites: Rust stable, the Tauri system dependencies for your OS
+(WebKitGTK on Linux), and a built frontend.
+
+```bash
+npm run desktop:prepare      # web build + bundled Node/server resources
+npm run desktop:dev          # debug desktop window
+npm run desktop:build        # platform installers under src-tauri/target/release/bundle
+```
+
+On Linux, `npx tauri build --bundles deb` produces a Debian package directly.
+The app stores runs and imported exports under the OS application-data
+directory, and the token still comes from the OS keychain or the in-app prompt.
+
+The bundled Node runtime is copied from the machine that builds the package.
+Set `NODE_DESKTOP_BINARY=/path/to/node` when building a distributable against a
+portable Node release.
+
 ## CLI
 
 ```bash

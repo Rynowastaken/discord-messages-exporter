@@ -31,10 +31,15 @@
     "web:install": "npm --prefix web install",
     "web:build": "npm --prefix web run build",
     "web:server": "tsx web/server.ts",
-    "web:start": "npm run build && npm run web:build && node dist/web/server.js"
+    "web:start": "npm run build && npm run web:build && node dist/web/server.js",
+    "desktop:prepare": "npm run web:build && node scripts/build-desktop.mjs",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^26.6.6",
+    "esbuild": "^0.25.12",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
