@@ -103,6 +103,9 @@ The web console opens on a dashboard with links to:
 
 - **Export** — the crawl console: author, whole channel, or whole server;
   live progress, stop/resume, and JSON download.
+- **Settings** — the Discord connection, date window, crawl pacing, attachment
+  handling, and a global export save folder. Finished jobs are copied into a
+  named folder there, or stay in their job folder when the field is blank.
 - **Explorer** — finished job exports and JSON files you load. Each export is
   indexed locally (SQLite) and gets separate **Messages** and **Insights**
   pages. Messages supports full-text search plus author, channel, and date

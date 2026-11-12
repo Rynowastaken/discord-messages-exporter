@@ -69,6 +69,7 @@ export default function SettingsDialog({
   const [saving, setSaving] = useState(false);
   const [outputDir, setOutputDir] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -78,9 +79,13 @@ export default function SettingsDialog({
       setDraftToken(token || "");
       setError(null);
       setSettingsLoading(true);
+      setSettingsReady(false);
       void api
         .settings()
-        .then((data) => setOutputDir(data.settings.output_dir))
+        .then((data) => {
+          setOutputDir(data.settings.output_dir);
+          setSettingsReady(true);
+        })
         .catch((err: unknown) => setError(humanizeError(err)))
         .finally(() => setSettingsLoading(false));
       if (!dialog.open) {
@@ -174,7 +179,9 @@ export default function SettingsDialog({
         workers: Number(draft.workers),
         rate: Number(draft.rate),
       };
-      await api.saveSettings({ output_dir: outputDir.trim() });
+      if (settingsReady) {
+        await api.saveSettings({ output_dir: outputDir.trim() });
+      }
       await onSave(normalized, serverToken ? "" : draftToken);
       onClose();
     } catch (err) {
@@ -358,8 +365,7 @@ export default function SettingsDialog({
             </label>
           </div>
           <p className="settings-hint">
-            Leave both empty to export the channel&apos;s full history for this
-            author.
+            Leave both empty to use the crawl&apos;s full available history.
           </p>
         </section>
 
@@ -566,7 +572,11 @@ export default function SettingsDialog({
           >
             Cancel
           </button>
-          <button type="submit" className="primary-button" disabled={saving}>
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={saving || settingsLoading}
+          >
             {saving ? "Saving…" : "Save settings"}
           </button>
         </div>

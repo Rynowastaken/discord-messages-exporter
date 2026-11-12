@@ -875,7 +875,8 @@ export class Job {
         .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ")
         .replace(/\s+/g, " ")
         .trim()
-        .slice(0, 90) || `export ${this.id}`
+        .slice(0, 90)
+        .replace(/[. ]+$/, "") || `export ${this.id}`
     );
   }
 
