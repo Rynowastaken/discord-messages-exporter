@@ -43,6 +43,7 @@ export interface CrawlConfig {
   workers?: number;
   rate?: number;
   includeAttachments?: boolean;
+  downloadAttachments?: boolean;
   keepIds?: boolean;
   lineOutput?: boolean;
   mode?: ExportMode;
@@ -396,7 +397,9 @@ export class Crawler {
       target_user_id: this.config.authorId,
       ordering: "chronological (oldest first)",
       attachments_note: includeAttachments
-        ? "Attachment binaries were NOT downloaded. Only metadata is included; url/proxy_url are signed CDN links that expire."
+        ? this.config.downloadAttachments
+          ? "Attachment metadata is included and the binaries are copied into the export's attachments directory when the crawl finishes. url/proxy_url remain signed CDN links that expire."
+          : "Attachment binaries were NOT downloaded. Only metadata is included; url/proxy_url are signed CDN links that expire."
         : "Attachment records were excluded from this export.",
       crawl: {
         ranges: this.config.ranges ?? 140,

@@ -3464,3 +3464,35 @@
     animation: none;
   }
 }
+
+.message-reactions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.message-row-foot .message-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .035);
+  color: var(--muted);
+  font-size: .62rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+
+.message-row-foot .message-reaction > span {
+  font-size: .78em;
+  line-height: 1;
+}
+
+.message-row-foot .message-reaction img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  vertical-align: -3px;
+}

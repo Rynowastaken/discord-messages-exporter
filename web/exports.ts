@@ -5,7 +5,7 @@
  * The index is an implementation detail. Nothing here mutates the export file.
  */
 import { randomBytes } from "node:crypto";
-import { createReadStream, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import {
   mkdir,
   open,
@@ -18,6 +18,7 @@ import {
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { scanExportFile } from "../src/export-file.js";
 import { EXPORTS_DIR, RUNS_DIR } from "./paths.js";
 
 export type ExportKind = "job" | "import";
@@ -63,6 +64,7 @@ export interface ExportSummary {
   modified_at: string;
   metadata: ExportMetadata | null;
   error: string | null;
+  has_attachments: boolean;
 }
 
 interface ExportRecord extends ExportSummary {
@@ -97,6 +99,7 @@ export interface MessageSummary {
   content_length: number;
   attachment_count: number;
   reaction_count: number;
+  reactions: Array<{ emoji: string; emoji_id: string | null; count: number }>;
   reply_to_id: string | null;
   edited: boolean;
 }
@@ -170,7 +173,7 @@ export interface ExportStats {
   length_buckets: Array<{ label: string; count: number }>;
 }
 
-const INDEX_SCHEMA = 3;
+const INDEX_SCHEMA = 5;
 
 interface IndexMeta {
   schema_version: number;
@@ -427,6 +430,7 @@ async function considerSource(
     modified_at: new Date(info.mtimeMs).toISOString(),
     metadata,
     error: null,
+    has_attachments: existsSync(join(directory, "attachments")),
     sourcePath,
     indexPath,
     directory,
@@ -537,6 +541,10 @@ export function getExport(id: string): ExportSummary | null {
 
 export function getExportSourcePath(id: string): string | null {
   return records.get(id)?.sourcePath ?? null;
+}
+
+export function getExportDirectory(id: string): string | null {
+  return records.get(id)?.directory ?? null;
 }
 
 export function getExportKind(id: string): ExportKind | null {
@@ -745,7 +753,7 @@ function normalizeMessage(
   edited: number;
   raw: string;
   attachments: Array<{ id: string; type: string }>;
-  reactions: Array<{ emoji: string; count: number }>;
+  reactions: Array<{ emoji: string; emojiId: string; count: number }>;
   links: string[];
   words: Array<{ word: string; count: number }>;
 } {
@@ -777,15 +785,32 @@ function normalizeMessage(
     sqlValue(reference.message_id) ||
     sqlValue(referenced.id);
   const content = sqlValue(message.content);
-  const reactionCounts = new Map<string, number>();
+  const reactionCounts = new Map<
+    string,
+    { emoji: string; emojiId: string; count: number }
+  >();
   for (const reaction of reactions) {
-    const emoji = (reaction.emoji ?? {}) as Record<string, unknown>;
+    const rawEmoji = reaction.emoji;
+    const emoji =
+      rawEmoji && typeof rawEmoji === "object"
+        ? (rawEmoji as Record<string, unknown>)
+        : null;
     const name =
-      sqlValue(emoji.name) || sqlValue(emoji.id) || "unknown emoji";
-    reactionCounts.set(
-      name,
-      (reactionCounts.get(name) ?? 0) + asNumber(reaction.count)
-    );
+      (typeof rawEmoji === "string" ? sqlValue(rawEmoji) : "") ||
+      sqlValue(emoji?.name) ||
+      sqlValue(reaction.emoji_id) ||
+      sqlValue(emoji?.id) ||
+      "unknown emoji";
+    const emojiId =
+      sqlValue(reaction.emoji_id) ||
+      sqlValue(emoji?.id) ||
+      "";
+    const existing = reactionCounts.get(name);
+    reactionCounts.set(name, {
+      emoji: name,
+      emojiId,
+      count: (existing?.count ?? 0) + asNumber(reaction.count),
+    });
   }
   return {
     id,
@@ -809,167 +834,10 @@ function normalizeMessage(
       id: sqlValue(attachment.id) || `attachment-${attachmentIndex}`,
       type: sqlValue(attachment.content_type) || "unknown",
     })),
-    reactions: [...reactionCounts.entries()].map(([emoji, count]) => ({
-      emoji,
-      count,
-    })),
+    reactions: [...reactionCounts.values()],
     links: domainsIn(content),
     words: wordsIn(content),
   };
-}
-
-interface ScanCallbacks {
-  onMetadata: (metadata: ExportMetadata) => void;
-  onMessage: (message: Record<string, unknown>, index: number) => void;
-  onProgress?: (bytes: number, indexed: number) => void;
-  signal?: AbortSignal;
-}
-
-async function scanExportFile(
-  sourcePath: string,
-  callbacks: ScanCallbacks
-): Promise<void> {
-  const stream = createReadStream(sourcePath, {
-    encoding: "utf8",
-    highWaterMark: 1024 * 1024,
-  });
-  let bytes = 0;
-  let messages = 0;
-  let depth = 0;
-  let rootStarted = false;
-  let inString = false;
-  let escaped = false;
-  let expectingKey = false;
-  let keyCapture: string | null = null;
-  let currentKey: string | null = null;
-  let inMessages = false;
-  let sawMessages = false;
-  let capture: string | null = null;
-  let captureBase = 0;
-  let captureKind: "metadata" | "message" | null = null;
-
-  const feed = (char: string): void => {
-    if (capture !== null) {
-      capture += char;
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (char === "\\") escaped = true;
-        else if (char === '"') inString = false;
-        return;
-      }
-      if (char === '"') {
-        inString = true;
-        return;
-      }
-      if (char === "{" || char === "[") {
-        depth += 1;
-        return;
-      }
-      if (char === "}" || char === "]") {
-        depth -= 1;
-        if (depth === captureBase) {
-          const value = capture;
-          const kind = captureKind;
-          capture = null;
-          captureKind = null;
-          if (kind === "metadata") {
-            callbacks.onMetadata(JSON.parse(value) as ExportMetadata);
-          } else if (kind === "message") {
-            callbacks.onMessage(
-              JSON.parse(value) as Record<string, unknown>,
-              messages
-            );
-            messages += 1;
-          }
-        }
-      }
-      return;
-    }
-
-    if (inString) {
-      if (keyCapture !== null) keyCapture += char;
-      if (escaped) escaped = false;
-      else if (char === "\\") escaped = true;
-      else if (char === '"') {
-        inString = false;
-        if (keyCapture !== null) {
-          currentKey = JSON.parse(keyCapture) as string;
-          keyCapture = null;
-          expectingKey = false;
-        }
-      }
-      return;
-    }
-
-    if (char === '"') {
-      inString = true;
-      if (depth === 1 && expectingKey) keyCapture = '"';
-      return;
-    }
-    if (char === "{" || char === "[") {
-      if (!rootStarted && depth === 0 && char === "{") {
-        rootStarted = true;
-        depth = 1;
-        expectingKey = true;
-        return;
-      }
-      if (depth === 1 && currentKey === "export_metadata" && char === "{") {
-        capture = "{";
-        captureBase = 1;
-        captureKind = "metadata";
-        depth = 2;
-        return;
-      }
-      if (inMessages && depth === 2 && char === "{") {
-        capture = "{";
-        captureBase = 2;
-        captureKind = "message";
-        depth = 3;
-        return;
-      }
-      if (depth === 1 && currentKey === "messages" && char === "[") {
-        inMessages = true;
-        sawMessages = true;
-        depth = 2;
-        return;
-      }
-      depth += 1;
-      return;
-    }
-    if (char === "}" || char === "]") {
-      depth -= 1;
-      if (inMessages && depth === 1 && char === "]") {
-        inMessages = false;
-        currentKey = null;
-      }
-      return;
-    }
-    if (char === "," && depth === 1) {
-      expectingKey = true;
-      currentKey = null;
-    }
-  };
-
-  for await (const chunk of stream) {
-    if (callbacks.signal?.aborted) throw new Error("indexing cancelled");
-    bytes += Buffer.byteLength(chunk);
-    for (let index = 0; index < chunk.length; index += 1) {
-      feed(chunk[index]);
-    }
-    callbacks.onProgress?.(bytes, messages);
-  }
-  if (!rootStarted) {
-    throw new Error("the file is not a JSON object");
-  }
-  if (!sawMessages) {
-    throw new Error("the file has no messages array");
-  }
-  if (depth !== 0) {
-    throw new Error("the export file is not complete JSON");
-  }
-  if (capture !== null || inString) {
-    throw new Error("the export file ends inside a JSON value");
-  }
 }
 
 export interface IndexResult {
@@ -1032,6 +900,7 @@ export async function buildIndex(
       CREATE TABLE reactions (
         message_id TEXT NOT NULL,
         emoji TEXT NOT NULL,
+        emoji_id TEXT,
         count INTEGER NOT NULL DEFAULT 0
       );
       CREATE UNIQUE INDEX reactions_unique
@@ -1068,7 +937,7 @@ export async function buildIndex(
       "INSERT OR IGNORE INTO attachments (message_id, attachment_id, content_type) VALUES (?, ?, ?)"
     );
     const insertReaction = db.prepare(
-      "INSERT OR IGNORE INTO reactions (message_id, emoji, count) VALUES (?, ?, ?)"
+      "INSERT OR IGNORE INTO reactions (message_id, emoji, emoji_id, count) VALUES (?, ?, ?, ?)"
     );
     const insertLink = db.prepare(
       "INSERT OR IGNORE INTO links (message_id, domain) VALUES (?, ?)"
@@ -1079,13 +948,14 @@ export async function buildIndex(
     db.exec("BEGIN");
     await scanExportFile(sourcePath, {
       onMetadata: (value) => {
-        metadata = value;
-        for (const channel of value.channels ?? []) {
+        const info = value as ExportMetadata;
+        metadata = info;
+        for (const channel of info.channels ?? []) {
           if (channel.id) {
             channelNames.set(String(channel.id), channel.name ?? "");
           }
         }
-        const soleChannel = value.channel;
+        const soleChannel = info.channel;
         if (soleChannel?.id) {
           channelNames.set(String(soleChannel.id), soleChannel.name ?? "");
         }
@@ -1121,7 +991,12 @@ export async function buildIndex(
           );
         }
         for (const reaction of normalized.reactions) {
-          insertReaction.run(normalized.id, reaction.emoji, reaction.count);
+          insertReaction.run(
+            normalized.id,
+            reaction.emoji,
+            reaction.emojiId || null,
+            reaction.count
+          );
         }
         for (const domain of normalized.links) {
           insertLink.run(normalized.id, domain);
@@ -1320,6 +1195,32 @@ export function queryMessages(
          LIMIT ? OFFSET ?`
       )
       .all(...filter.params, limit, offset) as Array<Record<string, unknown>>;
+    const reactionsByMessage = new Map<
+      string,
+      Array<{ emoji: string; emoji_id: string | null; count: number }>
+    >();
+    const ids = rows.map((row) => sqlValue(row.id)).filter(Boolean);
+    if (ids.length) {
+      const placeholders = ids.map(() => "?").join(", ");
+      const reactionRows = db
+        .prepare(
+          `SELECT message_id, emoji, emoji_id, count FROM reactions
+           WHERE message_id IN (${placeholders})
+           ORDER BY count DESC, emoji ASC`
+        )
+        .all(...ids) as Array<Record<string, unknown>>;
+      for (const reaction of reactionRows) {
+        const messageId = sqlValue(reaction.message_id);
+        if (!messageId) continue;
+        const list = reactionsByMessage.get(messageId) ?? [];
+        list.push({
+          emoji: sqlValue(reaction.emoji) || "?",
+          emoji_id: sqlValue(reaction.emoji_id) || null,
+          count: asNumber(reaction.count),
+        });
+        reactionsByMessage.set(messageId, list);
+      }
+    }
     return {
       messages: rows.map((row) => ({
         id: sqlValue(row.id),
@@ -1334,6 +1235,7 @@ export function queryMessages(
         content_length: asNumber(row.content_length),
         attachment_count: asNumber(row.attachment_count),
         reaction_count: asNumber(row.reaction_count),
+        reactions: reactionsByMessage.get(sqlValue(row.id)) ?? [],
         reply_to_id: sqlValue(row.reply_to_id) || null,
         edited: Boolean(row.edited),
       })),

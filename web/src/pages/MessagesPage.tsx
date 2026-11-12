@@ -98,6 +98,36 @@ function safeHref(value: string | undefined): string | undefined {
   }
 }
 
+function ReactionChip({
+  emoji,
+  emojiId,
+  count,
+}: {
+  emoji: string;
+  emojiId: string | null;
+  count: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="message-reaction" title={emoji}>
+      {emojiId && !failed ? (
+        <img
+          src={`https://cdn.discordapp.com/emojis/${emojiId}.png?size=32`}
+          alt=""
+          width={14}
+          height={14}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span aria-hidden="true">{emoji}</span>
+      )}
+      {fmt(count)}
+    </span>
+  );
+}
+
 function emptyFilters(): ExportFilters {
   return { q: "", author: "", channel: "", from: "", to: "" };
 }
@@ -527,7 +557,23 @@ export default function MessagesPage({
                           {fmt(message.attachment_count)}
                         </span>
                       ) : null}
-                      {message.reaction_count ? (
+                      {message.reactions?.length ? (
+                        <span className="message-reactions">
+                          {message.reactions.slice(0, 6).map((reaction, i) => (
+                            <ReactionChip
+                              key={`${reaction.emoji_id ?? reaction.emoji}-${i}`}
+                              emoji={reaction.emoji}
+                              emojiId={reaction.emoji_id}
+                              count={reaction.count}
+                            />
+                          ))}
+                          {message.reactions.length > 6 ? (
+                            <span className="message-reaction">
+                              +{message.reactions.length - 6}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : message.reaction_count ? (
                         <span>
                           <Smile
                             size={13}
@@ -656,11 +702,15 @@ export default function MessagesPage({
                 {selected.attachments?.length ? (
                   <div className="message-detail-block">
                     <h3>Attachments</h3>
-                    <AttachmentGrid attachments={selected.attachments} />
+                    <AttachmentGrid
+                      attachments={selected.attachments}
+                      exportId={exportId}
+                      localAttachments={Boolean(detail.export.has_attachments)}
+                    />
                     <p className="note-line">
-                      Attachment bytes are not archived. Signed Discord links
-                      expire, so a photo that cannot load stays as an
-                      unavailable card instead of opening a dead page.
+                      {detail.export.has_attachments
+                        ? "Files in this export are served from local storage. Anything that failed to download falls back to the signed Discord link."
+                        : "Attachment bytes are not archived. Signed Discord links expire, so a photo that cannot load stays as an unavailable card instead of opening a dead page."}
                     </p>
                   </div>
                 ) : null}

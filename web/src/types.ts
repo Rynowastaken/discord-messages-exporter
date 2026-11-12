@@ -30,6 +30,7 @@ export interface Fields {
   workers: number | string;
   rate: number | string;
   include_attachments: boolean;
+  download_attachments: boolean;
   check_total: boolean;
   is_bot: boolean;
 }
@@ -45,6 +46,7 @@ export interface JobConfig {
   workers: number;
   rate: number;
   include_attachments: boolean;
+  download_attachments: boolean;
   check_total: boolean;
   is_bot?: boolean;
 }
@@ -146,6 +148,8 @@ export interface Job {
   stats?: JobStats;
   eta_seconds?: number | null;
   assembly?: AssemblyInfo | null;
+  attachment_download?: AttachmentDownloadInfo | null;
+  attachment_error?: string | null;
   error?: string | null;
   errors?: string[];
   output?: JobOutput | null;
@@ -251,6 +255,15 @@ export interface BrowseResponse {
   members?: UserOption[];
 }
 
+export interface AttachmentDownloadInfo {
+  total: number;
+  downloaded: number;
+  skipped: number;
+  failed: number;
+  bytes: number;
+  complete: boolean;
+}
+
 export interface StartPayload {
   mode: ExportMode;
   channel?: string;
@@ -262,6 +275,7 @@ export interface StartPayload {
   workers?: number;
   rate?: number;
   include_attachments?: boolean;
+  download_attachments?: boolean;
   check_total?: boolean;
   is_bot?: boolean;
   token?: string;
@@ -335,6 +349,7 @@ export interface ExportSummary {
   modified_at: string;
   metadata: ExportMetadata | null;
   error: string | null;
+  has_attachments: boolean;
 }
 
 export interface FacetValue {
@@ -363,6 +378,11 @@ export interface ExplorerMessage {
   content_length: number;
   attachment_count: number;
   reaction_count: number;
+  reactions: Array<{
+    emoji: string;
+    emoji_id: string | null;
+    count: number;
+  }>;
   reply_to_id: string | null;
   edited: boolean;
 }

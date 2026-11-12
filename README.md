@@ -1,8 +1,9 @@
 # discord-messages-exporter
 
 Export every message one author posted in a Discord channel to a single
-chronological JSON file, resumably, without downloading any attachments. It
-also exports a whole channel or every text channel in a server.
+chronological JSON file, resumably. Attachment metadata is recorded by default
+and the files themselves can be archived alongside the JSON. It also exports a
+whole channel or every text channel in a server.
 
 TypeScript and Node.js 24+, no runtime dependencies. The built-in SQLite module
 powers the Explorer's local search index.
@@ -180,10 +181,13 @@ producing a quietly wrong file.
 A whole-server export merges one JSONL file per channel by id, so channels
 interleave chronologically and every message keeps its own `channel_id`.
 
-**Attachments are metadata only.** No bytes are ever fetched. The `url` and
-`proxy_url` values are signed CDN links that expire, so treat them as a record
-of what was attached, not a durable link. `--no-attachments` drops the records
-entirely.
+**Attachments are optional.** By default the export records metadata only.
+The `url` and `proxy_url` values are signed CDN links that expire, so treat
+them as a record of what was attached, not a durable link. `--no-attachments`
+drops the records; `--download-attachments` copies the bytes into
+`<work>/attachments/` and writes a manifest there. In the console, the same
+choice is under **Export settings → Output**: metadata only, download files,
+or exclude attachments.
 
 ## How it works
 

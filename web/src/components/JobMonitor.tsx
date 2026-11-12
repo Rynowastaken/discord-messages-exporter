@@ -95,6 +95,10 @@ export default function JobMonitor({
         ? `#${channel}`
         : `@${username} · ${channel}`;
 
+  const attachment = job.attachment_download;
+  const attachmentDone = attachment
+    ? attachment.downloaded + attachment.skipped + attachment.failed
+    : 0;
   const points = perMinute(job.throughput);
   const peak = points.reduce((max, point) => Math.max(max, point.pages), 0);
   const elapsed = Number(stats.elapsed) || 0;
@@ -204,7 +208,25 @@ export default function JobMonitor({
           </span>
           <span className="job-stat-label">output</span>
         </div>
+        {job.config.download_attachments ? (
+          <div className="job-stat">
+            <span className="job-stat-value">
+              {attachment
+                ? `${fmt(attachmentDone)}/${fmt(attachment.total)}`
+                : "—"}
+            </span>
+            <span className="job-stat-label">files</span>
+          </div>
+        ) : null}
       </div>
+
+      {job.stage === "attachments" && attachment ? (
+        <div className="job-message" role="status">
+          Archiving attachments {fmt(attachmentDone)}/{fmt(attachment.total)}{" "}
+          · {bytes(attachment.bytes)}
+          {attachment.failed ? ` · ${fmt(attachment.failed)} failed` : ""}
+        </div>
+      ) : null}
 
       <div className="job-actions">
         {active ? (
@@ -264,6 +286,12 @@ export default function JobMonitor({
         ) : null}
       </div>
 
+      {job.attachment_error ? (
+        <div className="job-message job-message--warn" role="status">
+          {job.attachment_error}
+        </div>
+      ) : null}
+
       {job.error ? (
         <div
           className={`job-message ${
@@ -291,8 +319,17 @@ export default function JobMonitor({
                   0
               )} channels`
             : ""}{" "}
-          · {fmt(job.assembly.attachments)} attachment records (metadata only) ·{" "}
-          {bytes(job.assembly.size_bytes)}
+          ·{" "}
+          {job.config.download_attachments
+            ? attachment
+              ? `${fmt(attachment.downloaded)} files archived${
+                  attachment.skipped
+                    ? ` · ${fmt(attachment.skipped)} existing`
+                    : ""
+                }${attachment.failed ? ` · ${fmt(attachment.failed)} failed` : ""}`
+              : `${fmt(job.assembly.attachments)} attachment records`
+            : `${fmt(job.assembly.attachments)} attachment records (metadata only)`}{" "}
+          · {bytes(job.assembly.size_bytes)}
           {job.status === "done" ? " · exit 0" : " · partial"}
         </div>
       ) : null}

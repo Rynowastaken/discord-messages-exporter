@@ -49,6 +49,7 @@ const DEFAULTS: Fields = {
   workers: 8,
   rate: 6,
   include_attachments: true,
+  download_attachments: false,
   check_total: true,
   is_bot: false,
 };
@@ -90,6 +91,9 @@ function loadFields(): Fields {
       workers: clampNumber(saved.workers, 8, 1, 32),
       rate: clampNumber(saved.rate, 6, 0.5, 10),
       include_attachments: saved.include_attachments !== false,
+      download_attachments:
+        saved.download_attachments === true &&
+        saved.include_attachments !== false,
       check_total: saved.check_total !== false,
       is_bot: Boolean(saved.is_bot),
     };
@@ -698,6 +702,8 @@ export default function ExportForm({
         workers: Number(fields.workers),
         rate: Number(fields.rate),
         include_attachments: fields.include_attachments,
+        download_attachments:
+          fields.include_attachments && fields.download_attachments,
         check_total: fields.check_total,
         is_bot: fields.is_bot,
         token: serverToken ? undefined : sessionToken || undefined,
@@ -710,9 +716,11 @@ export default function ExportForm({
     }
   }
 
-  const attachmentLabel = fields.include_attachments
-    ? "JSON + attachment metadata"
-    : "JSON, no attachments";
+  const attachmentLabel = !fields.include_attachments
+    ? "JSON, no attachments"
+    : fields.download_attachments
+      ? "JSON + downloaded files"
+      : "JSON + attachment metadata";
   const startBlockedClass =
     setupBlocked && !submitting && !busy ? " primary-button--blocked" : "";
 

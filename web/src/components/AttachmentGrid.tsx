@@ -15,6 +15,8 @@ export interface AttachmentMeta {
 
 interface AttachmentGridProps {
   attachments: AttachmentMeta[];
+  exportId: string;
+  localAttachments: boolean;
 }
 
 function safeUrl(value: string | undefined): string | null {
@@ -39,22 +41,26 @@ function MissingAttachment({ attachment }: { attachment: AttachmentMeta }) {
     <div className="attachment-card attachment-card--missing">
       <ImageOff size={18} strokeWidth={1.5} aria-hidden="true" />
       <strong>{attachment.filename ?? "attachment"}</strong>
-      <span>Link expired — attachment bytes were not archived.</span>
+      <span>
+        Not available — the file was not archived and the Discord link has
+        expired.
+      </span>
     </div>
   );
 }
 
 function ImageAttachment({
   attachment,
-  href,
+  sources,
 }: {
   attachment: AttachmentMeta;
-  href: string;
+  sources: string[];
 }) {
-  const [failed, setFailed] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const href = sources[sourceIndex];
 
-  if (failed) return <MissingAttachment attachment={attachment} />;
+  if (!href) return <MissingAttachment attachment={attachment} />;
 
   return (
     <a
@@ -69,11 +75,15 @@ function ImageAttachment({
       <span className="attachment-media">
         {!loaded ? <span className="attachment-loading" aria-hidden="true" /> : null}
         <img
+          key={href}
           src={href}
           alt={attachment.filename ?? "attachment"}
           loading="lazy"
           onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          onError={() => {
+            setLoaded(false);
+            setSourceIndex((value) => value + 1);
+          }}
         />
       </span>
       <span className="attachment-caption">
@@ -84,20 +94,34 @@ function ImageAttachment({
   );
 }
 
-export default function AttachmentGrid({ attachments }: AttachmentGridProps) {
+export default function AttachmentGrid({
+  attachments,
+  exportId,
+  localAttachments,
+}: AttachmentGridProps) {
   return (
     <div className="attachment-grid">
       {attachments.map((attachment, index) => {
-        const href = safeUrl(attachment.url ?? attachment.proxy_url);
+        const signed = safeUrl(attachment.url ?? attachment.proxy_url);
+        const local =
+          localAttachments && attachment.id
+            ? `/api/exports/${encodeURIComponent(
+                exportId
+              )}/attachments/${encodeURIComponent(attachment.id)}`
+            : null;
+        const href = local ?? signed;
         const isImage = attachment.content_type?.startsWith("image/");
         const key = attachment.id ?? index;
 
-        if (isImage && href) {
+        if (isImage) {
+          const sources = [local, signed].filter(
+            (value): value is string => Boolean(value)
+          );
           return (
             <ImageAttachment
               key={key}
               attachment={attachment}
-              href={href}
+              sources={sources}
             />
           );
         }

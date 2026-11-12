@@ -48,7 +48,8 @@ editable is in the Settings dialog:
 
 - date window
 - ranges, workers, and pace
-- attachment-metadata and search-total options
+- metadata-only, downloaded-files, or excluded attachment handling, plus the
+  search-total check
 - the Discord token, when the server has none
 
 **Export scope**
@@ -118,8 +119,9 @@ whose size or modification time changed is re-indexed; a failed index can be
 retried.
 
 - **Messages** supports FTS5 content search plus author, channel, and date
-  filters, with 100-message pages and a detail pane for attachments, reactions,
-  replies, and embeds.
+  filters, with 100-message pages, Discord markdown, reaction chips, inline
+  photo previews when files were archived, and a detail pane for attachments,
+  reactions, replies, and embeds.
 - **Insights** computes behavior rates, archive records, activity over time, a
   weekday-by-hour posting clock, a clickable word cloud, top authors/channels,
   message-length mix, attachment types, link domains, reactions, and
@@ -165,6 +167,7 @@ server restarts; the work directories do not.
 | GET | `/api/exports/{id}/messages` | paged messages (`q`, `author`, `channel`, `from`, `to`, `order`, `offset`, `limit`) |
 | GET | `/api/exports/{id}/messages/{messageId}` | one full message record |
 | GET | `/api/exports/{id}/stats` | filter-aware totals, activity, clock, leaderboards, attachment types |
+| GET | `/api/exports/{id}/attachments/{attachmentId}` | an archived attachment byte stream when the job downloaded files |
 | GET | `/api/exports/{id}/download` | the original export JSON |
 | POST | `/api/exports/{id}/reindex` | rebuild a failed or stale index |
 | DELETE | `/api/exports/{id}` | remove a loaded export and its index (not job exports) |

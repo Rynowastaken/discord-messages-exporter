@@ -113,6 +113,15 @@ export default function SettingsDialog({
     setError(null);
   }
 
+  function chooseAttachmentMode(mode: "files" | "metadata" | "exclude") {
+    setDraft((current) => ({
+      ...current,
+      include_attachments: mode !== "exclude",
+      download_attachments: mode === "files",
+    }));
+    setError(null);
+  }
+
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
     event.preventDefault();
     if (!saving) onClose();
@@ -387,23 +396,65 @@ export default function SettingsDialog({
               Output
             </h3>
           </div>
-          <div className="settings-checks">
+          <div
+            className="settings-checks"
+            role="radiogroup"
+            aria-label="Attachment handling"
+          >
             <label className="settings-check">
               <span className="settings-check-copy">
-                <strong>Include attachment metadata</strong>
+                <strong>Metadata only</strong>
                 <small>
-                  Names, sizes, and CDN URLs. Attachment bytes are never
-                  downloaded.
+                  Names, sizes, and CDN URLs. Fast and small; photos stay on
+                  Discord and their links expire.
                 </small>
               </span>
               <input
-                type="checkbox"
-                checked={draft.include_attachments}
-                onChange={(event) =>
-                  set("include_attachments", event.target.checked)
+                type="radio"
+                name="attachment-mode"
+                checked={
+                  draft.include_attachments && !draft.download_attachments
                 }
+                onChange={() => chooseAttachmentMode("metadata")}
               />
             </label>
+            <label className="settings-check">
+              <span className="settings-check-copy">
+                <strong>Download files</strong>
+                <small>
+                  Copies images and other attachments into this export&apos;s
+                  folder. Uses disk space and adds a download pass after the
+                  crawl.
+                </small>
+              </span>
+              <input
+                type="radio"
+                name="attachment-mode"
+                checked={
+                  draft.include_attachments && draft.download_attachments
+                }
+                onChange={() => chooseAttachmentMode("files")}
+              />
+            </label>
+            <label className="settings-check">
+              <span className="settings-check-copy">
+                <strong>Exclude attachments</strong>
+                <small>Leaves attachment records out of the JSON entirely.</small>
+              </span>
+              <input
+                type="radio"
+                name="attachment-mode"
+                checked={!draft.include_attachments}
+                onChange={() => chooseAttachmentMode("exclude")}
+              />
+            </label>
+          </div>
+          <p className="settings-hint">
+            Downloaded files are stored with the job and served from the
+            console, so photos keep working after Discord&apos;s signed links
+            expire.
+          </p>
+          <div className="settings-checks">
             <label className="settings-check">
               <span className="settings-check-copy">
                 <strong>Check total against search</strong>
@@ -419,10 +470,6 @@ export default function SettingsDialog({
               />
             </label>
           </div>
-          <p className="settings-hint">
-            The export records attachment metadata only; the files stay on
-            Discord&apos;s CDN.
-          </p>
         </section>
 
         {error ? (

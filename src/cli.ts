@@ -6,6 +6,7 @@
  */
 import { parseArgs } from "node:util";
 import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DiscordClient, DiscordError } from "./api.js";
 import {
@@ -14,6 +15,7 @@ import {
   type CrawlStats,
   discoverAuthor,
 } from "./crawl.js";
+import { downloadExportAttachments } from "./attachments.js";
 import { humanDuration, parseDate, snowflakeAt } from "./util.js";
 import { VERSION } from "./version.js";
 
@@ -37,6 +39,7 @@ interface ExportOptions extends CommonOptions {
   ranges: number;
   workers: number;
   noAttachments: boolean;
+  downloadAttachments: boolean;
   checkTotal: boolean;
 }
 
@@ -98,6 +101,11 @@ export async function cmdInfo(options: CommonOptions): Promise<number> {
 }
 
 export async function cmdExport(options: ExportOptions): Promise<number> {
+  if (options.downloadAttachments && options.noAttachments) {
+    throw new UsageError(
+      "--download-attachments cannot be used with --no-attachments"
+    );
+  }
   const client = clientFor(options);
   const channelId = options.channel;
   const authorId = options.author;
@@ -161,6 +169,7 @@ export async function cmdExport(options: ExportOptions): Promise<number> {
     workers: options.workers,
     rate: options.rate,
     includeAttachments: !options.noAttachments,
+    downloadAttachments: options.downloadAttachments,
     keepIds: options.checkTotal,
   };
   const crawler = new Crawler(config, client, {
@@ -188,13 +197,34 @@ export async function cmdExport(options: ExportOptions): Promise<number> {
     process.stderr.write("crawl finished without an assembly result\n");
     return 3;
   }
+  let attachmentLine =
+    `${result.attachments} ` +
+    `(${options.noAttachments ? "excluded" : "metadata only"})`;
+  if (options.downloadAttachments && result.attachments > 0) {
+    const attachmentDir = join(workdir, "attachments");
+    process.stderr.write(`archiving attachments in ${attachmentDir}\n`);
+    const downloads = await downloadExportAttachments({
+      sourcePath: outPath,
+      outDir: attachmentDir,
+      onProgress: (progress) => {
+        const done =
+          progress.downloaded + progress.skipped + progress.failed;
+        process.stderr.write(
+          `\rattachments ${done}/${progress.total} ` +
+            `(${progress.failed} failed)   `
+        );
+      },
+    });
+    process.stderr.write("\n");
+    attachmentLine =
+      `${result.attachments} ` +
+      `(${downloads.downloaded} downloaded, ${downloads.skipped} existing, ` +
+      `${downloads.failed} failed, ${(downloads.bytes / 1048576).toFixed(1)} MiB)`;
+  }
   console.log(`wrote ${outPath}`);
   console.log(`  messages     : ${result.total}`);
   console.log(`  wrong author : ${result.wrongAuthor}`);
-  console.log(
-    `  attachments  : ${result.attachments} ` +
-      `(${options.noAttachments ? "excluded" : "metadata only"})`
-  );
+  console.log(`  attachments  : ${attachmentLine}`);
   console.log(`  size         : ${(result.sizeBytes / 1048576).toFixed(1)} MiB`);
   console.log(
     `  range        : ${result.oldestTimestamp} -> ${result.newestTimestamp}`
@@ -268,6 +298,7 @@ Export options:
   --ranges <n>       id ranges to split the scan into (default 140)
   --workers <n>      concurrent fetchers (default 8)
   --no-attachments   omit attachment metadata entirely
+  --download-attachments  copy attachment files next to the crawl work dir
   --check-total      compare the exported count with search
   --version          print the version
   --help             show this help`;
@@ -295,6 +326,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
         ranges: { type: "string" },
         workers: { type: "string" },
         "no-attachments": { type: "boolean" },
+        "download-attachments": { type: "boolean" },
         "check-total": { type: "boolean" },
       },
     });
@@ -344,6 +376,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       ranges: numberOption(values.ranges, 140, "--ranges"),
       workers: numberOption(values.workers, 8, "--workers"),
       noAttachments: Boolean(values["no-attachments"]),
+      downloadAttachments: Boolean(values["download-attachments"]),
       checkTotal: Boolean(values["check-total"]),
     });
   } catch (err) {

@@ -32,7 +32,7 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
-import { extname, join, resolve, sep } from "node:path";
+import { basename, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { DIST_DIR, RUNS_DIR } from "./paths.js";
@@ -47,6 +47,7 @@ import {
   ensureIndexed,
   finalizeImport,
   getExport,
+  getExportDirectory,
   getExportKind,
   getExportSourcePath,
   listExports,
@@ -84,6 +85,11 @@ import {
   toSnowflake,
 } from "../src/util.js";
 import { VERSION } from "../src/version.js";
+import {
+  downloadExportAttachments,
+  readAttachmentManifest,
+  type AttachmentDownloadStats,
+} from "../src/attachments.js";
 
 let storedToken: { token: string; isBot: boolean } | null = null;
 
@@ -303,6 +309,7 @@ interface JobConfig {
   workers: number;
   rate: number;
   include_attachments: boolean;
+  download_attachments: boolean;
   check_total: boolean;
   is_bot: boolean;
 }
@@ -364,6 +371,8 @@ export class Job {
   ranges: RangePayload[] = [];
   throughput: ThroughputSample[] = [];
   assembly: Json | null = null;
+  attachmentDownload: AttachmentDownloadStats | null = null;
+  attachmentError: string | null = null;
   error: string | null = null;
   errors: string[] = [];
   startedAt: string | null = null;
@@ -399,6 +408,7 @@ export class Job {
       workers: asInt(payload.workers, 8, 1, 32),
       rate: asFloat(payload.rate, 6.0, 0.5, 10.0),
       include_attachments: Boolean(payload.include_attachments ?? true),
+      download_attachments: Boolean(payload.download_attachments ?? false),
       check_total: Boolean(payload.check_total ?? false),
       // The server token's type is configured once; a pasted token declares
       // its own type. Never guess from the token's shape.
@@ -619,6 +629,8 @@ export class Job {
       stats: { ...this.stats },
       eta_seconds: this.eta(),
       assembly: this.assembly,
+      attachment_download: this.attachmentDownload,
+      attachment_error: this.attachmentError,
       error: this.error,
       errors: this.errors.slice(0, 20),
       output,
@@ -645,6 +657,8 @@ export class Job {
     this.error = null;
     this.errors = [];
     this.assembly = null;
+    this.attachmentDownload = null;
+    this.attachmentError = null;
     this.finishedAt = null;
     this.throughput = [];
     this.start();
@@ -719,6 +733,7 @@ export class Job {
       workers: this.config.workers,
       rate: this.config.rate,
       includeAttachments: this.config.include_attachments,
+      downloadAttachments: this.config.download_attachments,
       keepIds: this.config.check_total,
       lineOutput: options.lineOutput ?? false,
       mode: this.config.mode,
@@ -787,8 +802,41 @@ export class Job {
       return;
     }
     this.recordAssembly(report.assembly);
+    if (!(await this.archiveAttachments())) return;
     this.status = "done";
     this.stage = "done";
+  }
+
+  private async archiveAttachments(): Promise<boolean> {
+    if (!this.config.download_attachments) return true;
+    this.stage = "attachments";
+    this.attachmentError = null;
+    try {
+      this.attachmentDownload = await downloadExportAttachments({
+        sourcePath: this.outPath,
+        outDir: join(this.jobDir, "attachments"),
+        isStopped: () => this.stopSignal.isSet(),
+        onProgress: (progress) => {
+          this.attachmentDownload = progress;
+        },
+      });
+      if (this.attachmentDownload.failed > 0) {
+        this.attachmentError =
+          `${this.attachmentDownload.failed} attachment(s) could not be ` +
+          "downloaded. The JSON export is still complete.";
+      }
+    } catch (err) {
+      this.attachmentError =
+        `attachments: ${err instanceof Error ? err.message : String(err)}`;
+    }
+    if (this.stopSignal.isSet()) {
+      this.status = "stopped";
+      this.stage = "stopped";
+      this.error =
+        "Stopped while archiving attachments. Resume to finish the files.";
+      return false;
+    }
+    return true;
   }
 
   private async run(): Promise<void> {
@@ -1140,7 +1188,9 @@ export class Job {
       target_user_id: null,
       ordering: "chronological across all channels (oldest first)",
       attachments_note: this.config.include_attachments
-        ? "Attachment binaries were NOT downloaded. Only metadata is included; url/proxy_url are signed CDN links that expire."
+        ? this.config.download_attachments
+          ? "Attachment metadata is included and binaries are copied into this export's attachments directory after the merge. url/proxy_url remain signed CDN links that expire."
+          : "Attachment binaries were NOT downloaded. Only metadata is included; url/proxy_url are signed CDN links that expire."
         : "Attachment records were excluded from this export.",
       window: {
         since: this.config.since || null,
@@ -1156,6 +1206,7 @@ export class Job {
     const result = await mergeLines(outputs, this.outPath, metadata);
     this.recordAssembly(result);
     await this.refreshMulti();
+    if (!(await this.archiveAttachments())) return;
     if (failures.length) {
       this.status = "partial";
       this.stage = "partial";
@@ -2015,6 +2066,63 @@ async function handleExports(
       "Content-Length": String(info.size),
     });
     createReadStream(sourcePath)
+      .on("error", () => res.destroy())
+      .pipe(res);
+    return true;
+  }
+
+  if (parts.length === 5 && parts[3] === "attachments") {
+    const directory = getExportDirectory(id);
+    const attachmentId = decodeSegment(parts[4]);
+    if (!directory || !attachmentId || !/^\d{1,25}$/.test(attachmentId)) {
+      apiError(res, "attachment not found", 404);
+      return true;
+    }
+    const attachmentsDir = join(directory, "attachments");
+    const manifest = await readAttachmentManifest(attachmentsDir);
+    let file = manifest?.files[attachmentId]?.file ?? null;
+    if (!file || file !== basename(file)) {
+      try {
+        const names = await readdir(attachmentsDir);
+        file =
+          names.find(
+            (name) =>
+              name.startsWith(`${attachmentId}.`) && !name.endsWith(".part")
+          ) ?? null;
+      } catch {
+        file = null;
+      }
+    }
+    if (!file) {
+      apiError(res, "attachment not downloaded", 404);
+      return true;
+    }
+    const root = resolve(attachmentsDir);
+    const target = resolve(root, file);
+    if (target !== root && !target.startsWith(root + sep)) {
+      apiError(res, "forbidden", 403);
+      return true;
+    }
+    if (!existsSync(target) || !statSync(target).isFile()) {
+      apiError(res, "attachment not downloaded", 404);
+      return true;
+    }
+    const info = statSync(target);
+    const contentType =
+      manifest?.files[attachmentId]?.content_type ??
+      CONTENT_TYPES[extname(target).toLowerCase()] ??
+      "application/octet-stream";
+    res.writeHead(200, {
+      "Content-Type": contentType,
+      "Content-Length": String(info.size),
+      "Content-Disposition": `${
+        contentType.startsWith("image/") ? "inline" : "attachment"
+      }; filename="${file}"`,
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "Cache-Control": "private, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+    });
+    createReadStream(target)
       .on("error", () => res.destroy())
       .pipe(res);
     return true;

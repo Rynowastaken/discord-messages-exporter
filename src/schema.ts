@@ -1,7 +1,8 @@
 /**
  * Shape raw API messages into a stable, self-contained record.
  *
- * Attachment entries carry metadata only; their CDN URLs are signed and expire.
+ * Attachment entries carry metadata; the optional archiver can copy their bytes
+ * into the job folder later, while the CDN URLs remain signed and expire.
  */
 import type {
   DiscordAttachment,
