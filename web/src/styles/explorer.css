@@ -3496,3 +3496,10 @@
   object-fit: contain;
   vertical-align: -3px;
 }
+
+.reaction-list img.reaction-emoji-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  vertical-align: -3px;
+}

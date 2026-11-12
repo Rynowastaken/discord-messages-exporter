@@ -69,7 +69,8 @@ interface RawMessage {
     type?: string;
   }>;
   reactions?: Array<{
-    emoji?: { name?: string | null; id?: string | null };
+    emoji?: string | { name?: string | null; id?: string | null } | null;
+    emoji_id?: string | null;
     count?: number;
   }>;
   referenced_message?: {
@@ -98,6 +99,31 @@ function safeHref(value: string | undefined): string | undefined {
   }
 }
 
+function ReactionGlyph({
+  emoji,
+  emojiId,
+}: {
+  emoji: string;
+  emojiId: string | null;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (emojiId && !failed) {
+    return (
+      <img
+        className="reaction-emoji-img"
+        src={`https://cdn.discordapp.com/emojis/${emojiId}.png?size=32`}
+        alt=""
+        width={14}
+        height={14}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return <span aria-hidden="true">{emoji}</span>;
+}
+
 function ReactionChip({
   emoji,
   emojiId,
@@ -107,25 +133,25 @@ function ReactionChip({
   emojiId: string | null;
   count: number;
 }) {
-  const [failed, setFailed] = useState(false);
   return (
     <span className="message-reaction" title={emoji}>
-      {emojiId && !failed ? (
-        <img
-          src={`https://cdn.discordapp.com/emojis/${emojiId}.png?size=32`}
-          alt=""
-          width={14}
-          height={14}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <span aria-hidden="true">{emoji}</span>
-      )}
+      <ReactionGlyph emoji={emoji} emojiId={emojiId} />
       {fmt(count)}
     </span>
   );
+}
+
+function rawReaction(
+  reaction: NonNullable<RawMessage["reactions"]>[number]
+): { name: string; emojiId: string | null } {
+  const raw = reaction.emoji;
+  if (typeof raw === "string") {
+    return { name: raw || "?", emojiId: reaction.emoji_id ?? null };
+  }
+  return {
+    name: raw?.name || raw?.id || "?",
+    emojiId: raw?.id ?? reaction.emoji_id ?? null,
+  };
 }
 
 function emptyFilters(): ExportFilters {
@@ -719,12 +745,20 @@ export default function MessagesPage({
                   <div className="message-detail-block">
                     <h3>Reactions</h3>
                     <div className="reaction-list">
-                      {selected.reactions.map((reaction, index) => (
-                        <span key={index}>
-                          {reaction.emoji?.name ?? ":"}
-                          {reaction.count ? ` ×${fmt(reaction.count)}` : ""}
-                        </span>
-                      ))}
+                      {selected.reactions.map((reaction, index) => {
+                        const glyph = rawReaction(reaction);
+                        return (
+                          <span key={index} title={glyph.name}>
+                            <ReactionGlyph
+                              emoji={glyph.name}
+                              emojiId={glyph.emojiId}
+                            />
+                            {reaction.count
+                              ? ` ×${fmt(reaction.count)}`
+                              : ""}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null}
