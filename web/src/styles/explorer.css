@@ -2622,7 +2622,7 @@
 .console-page {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 150px);
 }
 
 .console-lower {
@@ -2771,7 +2771,7 @@
 .explorer-page {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 150px);
 }
 
 .explorer-layout {
@@ -2805,7 +2805,7 @@
 
 .explorer-library .export-list {
   display: grid;
-  flex: 1;
+  flex: 0 0 auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
   gap: 10px;
