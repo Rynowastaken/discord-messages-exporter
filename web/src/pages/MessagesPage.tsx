@@ -15,6 +15,7 @@ import {
   Smile,
   X,
 } from "lucide-react";
+import AttachmentGrid from "../components/AttachmentGrid";
 import Avatar from "../components/Avatar";
 import ExportHeader from "../components/ExportHeader";
 import MessageMarkdown from "../components/MessageMarkdown";
@@ -655,33 +656,11 @@ export default function MessagesPage({
                 {selected.attachments?.length ? (
                   <div className="message-detail-block">
                     <h3>Attachments</h3>
-                    <ul className="attachment-list">
-                      {selected.attachments.map((attachment, index) => {
-                        const href = safeHref(attachment.url);
-                        return (
-                          <li key={attachment.id ?? index}>
-                            {href ? (
-                              <a href={href} target="_blank" rel="noreferrer">
-                                {attachment.filename ?? "attachment"}
-                              </a>
-                            ) : (
-                              <strong className="attachment-name">
-                                {attachment.filename ?? "attachment"}
-                              </strong>
-                            )}
-                            <span>
-                              {attachment.content_type ?? "unknown type"}
-                              {attachment.size
-                                ? ` · ${fmt(attachment.size)} bytes`
-                                : ""}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <AttachmentGrid attachments={selected.attachments} />
                     <p className="note-line">
-                      Links are signed CDN URLs from the export and may have
-                      expired; no attachment bytes are stored.
+                      Attachment bytes are not archived. Signed Discord links
+                      expire, so a photo that cannot load stays as an
+                      unavailable card instead of opening a dead page.
                     </p>
                   </div>
                 ) : null}
