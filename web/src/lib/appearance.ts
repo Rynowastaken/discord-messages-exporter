@@ -219,12 +219,15 @@ function normalizeAppearance(
   const scheme = COLOR_SCHEMES[appearance.scheme]
     ? appearance.scheme
     : DEFAULT_APPEARANCE.scheme;
+  const backgroundBrightness = Number(appearance.background_brightness);
   return {
     scheme,
     colorfulness: clamp(Number(appearance.colorfulness) || 1, 0.5, 1.5),
     brightness: clamp(Number(appearance.brightness) || 1, 0.5, 1.5),
     background_brightness: clamp(
-      Number(appearance.background_brightness) || 0,
+      Number.isFinite(backgroundBrightness)
+        ? backgroundBrightness
+        : DEFAULT_APPEARANCE.background_brightness,
       0,
       200
     ),
