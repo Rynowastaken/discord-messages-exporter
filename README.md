@@ -115,8 +115,8 @@ The web console opens on a dashboard with links to:
 
 An export is only read, never modified. Loaded files are copied to
 `web/exports/`; job exports are indexed beside their run directory. Set
-`DISCORD_AUTHOR_EXPORT_EXPORTS` to relocate loaded exports and
-`DISCORD_AUTHOR_EXPORT_RUNS` to relocate job runs.
+`DISCORD_MESSAGES_EXPORTER_EXPORTS` to relocate loaded exports and
+`DISCORD_MESSAGES_EXPORTER_RUNS` to relocate job runs.
 
 ## CLI
 

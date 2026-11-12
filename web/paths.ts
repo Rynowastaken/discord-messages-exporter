@@ -24,16 +24,19 @@ export const REPO_DIR = findRepoRoot(MODULE_DIR);
 export const WEB_DIR = join(REPO_DIR, "web");
 export const DIST_DIR = join(WEB_DIR, "dist");
 
-function configuredPath(envName: string, fallback: string): string {
-  const configured = (process.env[envName] ?? "").trim();
-  return configured ? resolve(configured) : fallback;
+function configuredPath(envNames: string[], fallback: string): string {
+  for (const envName of envNames) {
+    const configured = (process.env[envName] ?? "").trim();
+    if (configured) return resolve(configured);
+  }
+  return fallback;
 }
 
 export const RUNS_DIR = configuredPath(
-  "DISCORD_AUTHOR_EXPORT_RUNS",
+  ["DISCORD_MESSAGES_EXPORTER_RUNS", "DISCORD_AUTHOR_EXPORT_RUNS"],
   join(WEB_DIR, "runs")
 );
 export const EXPORTS_DIR = configuredPath(
-  "DISCORD_AUTHOR_EXPORT_EXPORTS",
+  ["DISCORD_MESSAGES_EXPORTER_EXPORTS", "DISCORD_AUTHOR_EXPORT_EXPORTS"],
   join(WEB_DIR, "exports")
 );

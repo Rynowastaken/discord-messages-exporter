@@ -24,6 +24,20 @@ import { humanDuration, parseDate, snowflakeAt, StopSignal } from "./util.js";
 import { VERSION } from "./version.js";
 
 const SETTINGS_PATH = resolve(homedir(), ".discord-messages-exporter.json");
+const LEGACY_SETTINGS_PATH = resolve(
+  homedir(),
+  ".discord-author-export.json"
+);
+
+async function readSettingsFile(): Promise<string> {
+  try {
+    return await readFile(SETTINGS_PATH, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    // Keep settings saved under the project's original name.
+    return readFile(LEGACY_SETTINGS_PATH, "utf8");
+  }
+}
 const TOKEN_ENV = "DISCORD_TOKEN";
 
 const BOLD = "\x1b[1m";
@@ -155,7 +169,7 @@ export class Launcher {
   private async loadSettings(): Promise<void> {
     try {
       const stored = JSON.parse(
-        await readFile(SETTINGS_PATH, "utf8")
+        await readSettingsFile()
       ) as Partial<TuiSettings>;
       for (const key of Object.keys(DEFAULTS) as Array<keyof TuiSettings>) {
         if (stored[key] !== undefined) {

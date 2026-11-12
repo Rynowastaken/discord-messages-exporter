@@ -36,7 +36,7 @@ The server binds to `127.0.0.1` by default. If you expose it, put it behind an
 authenticated reverse proxy (Cloudflare Access, a VPN, or similar): anyone who
 can reach the port can start exports with the server's token.
 
-Work directories default to `web/runs/`. Set `DISCORD_AUTHOR_EXPORT_RUNS` to a
+Work directories default to `web/runs/`. Set `DISCORD_MESSAGES_EXPORTER_RUNS` to a
 writable path when the package directory is read-only (for example, a global
 install).
 
@@ -127,8 +127,8 @@ retried.
   controls whether everything follows the filter bar.
 
 Work directories and loaded exports can be relocated with
-`DISCORD_AUTHOR_EXPORT_RUNS` and `DISCORD_AUTHOR_EXPORT_EXPORTS`.
-`DISCORD_AUTHOR_EXPORT_MAX_BYTES` caps an upload (default 2 GiB).
+`DISCORD_MESSAGES_EXPORTER_RUNS` and `DISCORD_MESSAGES_EXPORTER_EXPORTS`.
+`DISCORD_MESSAGES_EXPORTER_MAX_BYTES` caps an upload (default 2 GiB).
 
 ## Jobs
 

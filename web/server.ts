@@ -113,8 +113,10 @@ const MAX_JOBS = 25;
 const MAX_BODY = 64 * 1024;
 const MAX_EXPORT_BYTES = Math.max(
   1,
-  Number(process.env.DISCORD_AUTHOR_EXPORT_MAX_BYTES) ||
-    2 * 1024 * 1024 * 1024
+  Number(
+    process.env.DISCORD_MESSAGES_EXPORTER_MAX_BYTES ??
+      process.env.DISCORD_AUTHOR_EXPORT_MAX_BYTES
+  ) || 2 * 1024 * 1024 * 1024
 );
 const TERMINAL = new Set([
   "done",
