@@ -93,17 +93,52 @@ jobs:
           npm ci
           npm --prefix web ci
 
-      - name: Build Windows installers
-        run: npm run desktop:build
+      - name: Build Windows binary
+        run: npx tauri build --no-bundle
 
-      - name: Upload Windows bundles
+      - name: Build Windows server executable
+        run: cargo build --release --manifest-path src-tauri/Cargo.toml --bin discord-messages-exporter-server
+
+      - name: Assemble portable Windows folder
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $root = "dist-portable"
+          $app = "$root/Discord Messages Exporter"
+          New-Item -ItemType Directory -Force -Path $app | Out-Null
+          Copy-Item "src-tauri/target/release/discord-messages-exporter-desktop.exe" "$app/Discord Messages Exporter.exe"
+          Copy-Item "src-tauri/target/release/discord-messages-exporter-server.exe" "$app/Discord Messages Exporter Server.exe"
+          Copy-Item "src-tauri/resources/app" "$app/app" -Recurse
+          Copy-Item "README.md" "$app/README.md"
+          @"
+          Discord Messages Exporter $version — portable Windows build
+
+          Desktop app:
+            Run "Discord Messages Exporter.exe".
+
+          LAN server:
+            Run "Start Server.cmd" (or "Discord Messages Exporter Server.exe").
+            It prints the local and network URLs and keeps running until Ctrl-C.
+            Data and the URL file are written under %APPDATA%\discord-messages-exporter
+            unless you pass --data <folder>.
+
+          The desktop shell needs Microsoft Edge WebView2, which is included
+          with current Windows 10 and Windows 11 installations.
+          "@ | Set-Content "$app/README.txt"
+          @"
+          @echo off
+          cd /d "%~dp0"
+          "Discord Messages Exporter Server.exe" --host 0.0.0.0 --port 8788
+          pause
+          "@ | Set-Content "$app/Start Server.cmd"
+          Compress-Archive -Path "$app/*" -DestinationPath "$root/Discord-Messages-Exporter_${version}_x64-portable.zip" -Force
+
+      - name: Upload portable Windows bundle
         uses: actions/upload-artifact@v4
         with:
-          name: windows-bundles
+          name: windows-portable
           if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
+          path: dist-portable/*.zip
 
   release:
     name: Publish GitHub release

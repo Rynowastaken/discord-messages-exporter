@@ -236,3 +236,8 @@ button:focus-visible,
     transition-duration: .01ms !important;
   }
 }
+
+::selection {
+  background: rgba(240, 168, 200, .26);
+  color: var(--foreground);
+}

@@ -46,6 +46,7 @@ The main form holds the export scope, the IDs that scope needs, the Discord
 connection state, and a read-only summary of the current settings. Everything
 editable is in the Settings dialog:
 
+- export save folder (finished jobs are copied there as a named folder)
 - date window
 - ranges, workers, and pace
 - metadata-only, downloaded-files, or excluded attachment handling, plus the

@@ -883,10 +883,22 @@
 }
 
 .form-requirement {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   margin-top: 8px;
   color: var(--muted);
   font-size: .7rem;
   line-height: 1.6;
+}
+
+.form-requirement::before {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
 }
 
 .token-dot {
@@ -1718,4 +1730,78 @@
   .primary-button:hover:not(:disabled) {
     transform: none;
   }
+}
+
+.settings-path {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-path > svg {
+  position: absolute;
+  left: 11px;
+  z-index: 1;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.settings-path .field-input {
+  padding-left: 33px;
+}
+
+.settings-path-reset {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: .66rem;
+  cursor: pointer;
+}
+
+.settings-path-reset:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-path {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-path > svg {
+  position: absolute;
+  left: 11px;
+  z-index: 1;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.settings-path .field-input {
+  padding-left: 33px;
+}
+
+.settings-path-reset {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: .66rem;
+  cursor: pointer;
+}
+
+.settings-path-reset:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.settings-dialog:focus {
+  outline: none;
 }

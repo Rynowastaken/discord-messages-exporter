@@ -206,7 +206,31 @@ export default function ExplorerPage() {
         ) : exports.length ? (
           <div className="export-list">
             {exports.map((item) => (
-              <article className="export-row" key={item.id}>
+              <article
+                className="export-row"
+                key={item.id}
+                role="link"
+                tabIndex={0}
+                aria-label={`Open ${item.name}`}
+                onClick={(event) => {
+                  if (
+                    (event.target as HTMLElement).closest("a, button")
+                  ) {
+                    return;
+                  }
+                  navigate(
+                    `/explorer/${encodeURIComponent(item.id)}/messages`
+                  );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(
+                      `/explorer/${encodeURIComponent(item.id)}/messages`
+                    );
+                  }
+                }}
+              >
                 <div className="export-row-head">
                   <div className="export-row-title">
                     <span className="export-kind">
@@ -397,7 +421,7 @@ export default function ExplorerPage() {
               : "Drop the file here, or click to choose one."}
           </span>
           <span className="drop-zone-note">
-            Copied into web/exports and indexed locally.
+            Copied into the export library and indexed locally.
           </span>
         </div>
 

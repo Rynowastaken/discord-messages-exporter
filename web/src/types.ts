@@ -49,6 +49,7 @@ export interface JobConfig {
   download_attachments: boolean;
   check_total: boolean;
   is_bot?: boolean;
+  output_dir?: string;
 }
 
 export interface JobStats {
@@ -150,6 +151,8 @@ export interface Job {
   assembly?: AssemblyInfo | null;
   attachment_download?: AttachmentDownloadInfo | null;
   attachment_error?: string | null;
+  saved_to?: string | null;
+  save_error?: string | null;
   error?: string | null;
   errors?: string[];
   output?: JobOutput | null;
@@ -165,6 +168,14 @@ export interface StatusResponse {
   token_source?: "env" | "stored" | "none";
   token_storage?: "os-keychain" | "memory";
   jobs: Job[];
+}
+
+export interface AppSettings {
+  output_dir: string;
+}
+
+export interface AppSettingsResponse {
+  settings: AppSettings;
 }
 
 export interface TokenStatus {

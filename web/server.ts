@@ -20,6 +20,8 @@ import {
   statSync,
 } from "node:fs";
 import {
+  copyFile,
+  cp,
   mkdir,
   open,
   readFile,
@@ -85,6 +87,12 @@ import {
   toSnowflake,
 } from "../src/util.js";
 import { VERSION } from "../src/version.js";
+import {
+  configuredOutputDir,
+  currentSettings,
+  loadSettings,
+  saveSettings,
+} from "./settings.js";
 import {
   downloadExportAttachments,
   readAttachmentManifest,
@@ -312,6 +320,7 @@ interface JobConfig {
   download_attachments: boolean;
   check_total: boolean;
   is_bot: boolean;
+  output_dir: string;
 }
 
 interface ChannelPlan {
@@ -373,6 +382,8 @@ export class Job {
   assembly: Json | null = null;
   attachmentDownload: AttachmentDownloadStats | null = null;
   attachmentError: string | null = null;
+  savedTo: string | null = null;
+  saveError: string | null = null;
   error: string | null = null;
   errors: string[] = [];
   startedAt: string | null = null;
@@ -410,6 +421,7 @@ export class Job {
       include_attachments: Boolean(payload.include_attachments ?? true),
       download_attachments: Boolean(payload.download_attachments ?? false),
       check_total: Boolean(payload.check_total ?? false),
+      output_dir: configuredOutputDir(),
       // The server token's type is configured once; a pasted token declares
       // its own type. Never guess from the token's shape.
       is_bot: token ? Boolean(payload.is_bot ?? false) : serverTokenIsBot(),
@@ -631,6 +643,8 @@ export class Job {
       assembly: this.assembly,
       attachment_download: this.attachmentDownload,
       attachment_error: this.attachmentError,
+      saved_to: this.savedTo,
+      save_error: this.saveError,
       error: this.error,
       errors: this.errors.slice(0, 20),
       output,
@@ -659,6 +673,8 @@ export class Job {
     this.assembly = null;
     this.attachmentDownload = null;
     this.attachmentError = null;
+    this.savedTo = null;
+    this.saveError = null;
     this.finishedAt = null;
     this.throughput = [];
     this.start();
@@ -803,6 +819,7 @@ export class Job {
     }
     this.recordAssembly(report.assembly);
     if (!(await this.archiveAttachments())) return;
+    await this.saveExportCopy();
     this.status = "done";
     this.stage = "done";
   }
@@ -837,6 +854,62 @@ export class Job {
       return false;
     }
     return true;
+  }
+
+  private exportLabel(): string {
+    const raw =
+      this.config.mode === "server"
+        ? this.guild?.name || `server ${this.config.server}`
+        : this.config.mode === "channel"
+          ? this.channel?.name || `channel ${this.config.channel}`
+          : [
+              this.author?.global_name ||
+                this.author?.username ||
+                this.config.author,
+              this.channel?.name,
+            ]
+              .filter(Boolean)
+              .join(" - ");
+    return (
+      raw
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 90) || `export ${this.id}`
+    );
+  }
+
+  private async freeOutputDirectory(root: string, label: string): Promise<string> {
+    for (let index = 0; index < 1000; index += 1) {
+      const name = index === 0 ? label : `${label} (${index + 1})`;
+      const candidate = join(root, name);
+      if (!existsSync(candidate)) return candidate;
+    }
+    return join(root, `${label} ${this.id}`);
+  }
+
+  private async saveExportCopy(): Promise<void> {
+    if (!this.config.output_dir) return;
+    this.stage = "saving";
+    try {
+      const folder = await this.freeOutputDirectory(
+        this.config.output_dir,
+        this.exportLabel()
+      );
+      await mkdir(folder, { recursive: true });
+      await copyFile(this.outPath, join(folder, "messages.json"));
+      const attachmentDir = join(this.jobDir, "attachments");
+      if (this.config.download_attachments && existsSync(attachmentDir)) {
+        await cp(attachmentDir, join(folder, "attachments"), {
+          recursive: true,
+        });
+      }
+      this.savedTo = folder;
+      this.saveError = null;
+    } catch (err) {
+      this.saveError =
+        `could not save a copy: ${err instanceof Error ? err.message : err}`;
+    }
   }
 
   private async run(): Promise<void> {
@@ -1207,6 +1280,7 @@ export class Job {
     this.recordAssembly(result);
     await this.refreshMulti();
     if (!(await this.archiveAttachments())) return;
+    await this.saveExportCopy();
     if (failures.length) {
       this.status = "partial";
       this.stage = "partial";
@@ -2227,6 +2301,27 @@ async function handle(
       apiError(res, "cross-origin request refused", 403);
       return;
     }
+    if (pathname === "/api/settings") {
+      if (method === "GET") {
+        sendJson(res, { settings: currentSettings() });
+        return;
+      }
+      if (method === "POST") {
+        const body = await readJson(req);
+        try {
+          sendJson(res, { settings: await saveSettings(body) });
+        } catch (err) {
+          apiError(
+            res,
+            err instanceof Error ? err.message : String(err),
+            400
+          );
+        }
+        return;
+      }
+      apiError(res, "method not allowed", 405);
+      return;
+    }
     if (pathname === "/api/token") {
       if (method === "GET") {
         handleTokenStatus(res);
@@ -2434,6 +2529,7 @@ export async function main(
     watcher.unref();
   }
 
+  await loadSettings();
   await mkdir(RUNS_DIR, { recursive: true });
   if (!environmentToken()) {
     storedToken = await readStoredToken();

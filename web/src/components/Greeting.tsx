@@ -63,8 +63,8 @@ export default function Greeting({
         {partOfDay}, <span className="greeting-name">{name}</span>
       </h1>
       <p className="greeting-sub">
-        One author, one channel, or a whole server — resumable, paced,
-        attachment-free.
+        One author, one channel, or a whole server — resumable, paced, and
+        searchable.
       </p>
       <p
         className={`greeting-meta${metaError ? " greeting-meta--error" : ""}`}

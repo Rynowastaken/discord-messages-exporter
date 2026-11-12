@@ -141,6 +141,25 @@ On Linux, `npx tauri build --bundles deb` produces a Debian package directly.
 The app stores runs and imported exports under the OS application-data
 directory, and the token still comes from the OS keychain or the in-app prompt.
 
+The desktop executable can also run headless and serve the same console to
+other devices on the network:
+
+```bash
+./discord-messages-exporter-desktop --server --port 8788
+# Windows portable build:
+"Discord Messages Exporter Server.exe" --host 0.0.0.0 --port 8788
+```
+
+It prints both the local and network URL, writes the same information to
+`server-url.txt` in its data folder, and keeps running until Ctrl-C. The
+default host is `0.0.0.0`; use `--host 127.0.0.1` to keep it local. Pass
+`--data <folder>` to choose where runs and imports are stored.
+
+Windows release builds are packaged as a portable zip rather than an
+installer: the desktop executable, the console server executable, the bundled
+Node runtime, and the web assets sit in one folder. Current Windows 10 and 11
+include the required WebView2 runtime.
+
 The bundled Node runtime is copied from the machine that builds the package.
 Set `NODE_DESKTOP_BINARY=/path/to/node` when building a distributable against a
 portable Node release.

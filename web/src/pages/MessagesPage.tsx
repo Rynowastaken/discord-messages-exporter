@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  MessageSquare,
   Paperclip,
   Search,
   Smile,
@@ -827,8 +828,15 @@ export default function MessagesPage({
             )
           ) : (
             <div className="message-detail-empty">
+              <span className="message-detail-empty-icon" aria-hidden="true">
+                <MessageSquare size={20} strokeWidth={1.5} />
+              </span>
               <span className="module-kicker">Message</span>
-              <p>Select a message to read the full record.</p>
+              <strong>Select a message</strong>
+              <p>
+                Read its full text, attachments, reactions, and reply context
+                here.
+              </p>
             </div>
           )}
         </aside>

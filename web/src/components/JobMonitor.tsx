@@ -286,6 +286,19 @@ export default function JobMonitor({
         ) : null}
       </div>
 
+      {job.saved_to ? (
+        <div className="job-message job-message--saved" role="status">
+          <span>Saved copy</span>
+          <code title={job.saved_to}>{job.saved_to}</code>
+        </div>
+      ) : null}
+
+      {job.save_error ? (
+        <div className="job-message job-message--warn" role="status">
+          {job.save_error}
+        </div>
+      ) : null}
+
       {job.attachment_error ? (
         <div className="job-message job-message--warn" role="status">
           {job.attachment_error}

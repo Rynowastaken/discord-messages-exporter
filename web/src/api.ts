@@ -1,4 +1,5 @@
 import type {
+  AppSettingsResponse,
   BrowsePayload,
   BrowseResponse,
   ExportDetailResponse,
@@ -66,6 +67,12 @@ async function request<T>(
 
 export const api = {
   status: () => request<StatusResponse>("/api/status"),
+  settings: () => request<AppSettingsResponse>("/api/settings"),
+  saveSettings: (settings: { output_dir: string }) =>
+    request<AppSettingsResponse>("/api/settings", {
+      method: "POST",
+      body: JSON.stringify(settings),
+    }),
   tokenStatus: () => request<TokenStatus>("/api/token"),
   setToken: (token: string, isBot: boolean, remember: boolean) =>
     request<TokenStatus>("/api/token", {

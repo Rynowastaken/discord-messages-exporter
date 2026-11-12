@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode, SyntheticEvent } from "react";
-import { CalendarDays, FileOutput, Gauge, KeyRound, Settings2, X } from "lucide-react";
+import {
+  CalendarDays,
+  FileOutput,
+  FolderOutput,
+  Gauge,
+  KeyRound,
+  Settings2,
+  X,
+} from "lucide-react";
+import { api } from "../api";
+import { humanizeError } from "../lib/errors";
 import type { Fields, Identity } from "../types";
 
 type Section = "token" | "window" | null;
@@ -38,10 +48,6 @@ function validateDraft(draft: Fields): string | null {
   return null;
 }
 
-function messageOf(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
 export default function SettingsDialog({
   open,
   fields,
@@ -61,6 +67,8 @@ export default function SettingsDialog({
   const [draftToken, setDraftToken] = useState(token || "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [outputDir, setOutputDir] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -69,9 +77,18 @@ export default function SettingsDialog({
       setDraft(fields);
       setDraftToken(token || "");
       setError(null);
+      setSettingsLoading(true);
+      void api
+        .settings()
+        .then((data) => setOutputDir(data.settings.output_dir))
+        .catch((err: unknown) => setError(humanizeError(err)))
+        .finally(() => setSettingsLoading(false));
       if (!dialog.open) {
         dialog.showModal();
         dialog.scrollTop = 0;
+        if (!initialSection) {
+          requestAnimationFrame(() => dialog.focus());
+        }
         if (initialSection) {
           requestAnimationFrame(() => {
             const sectionId =
@@ -148,10 +165,11 @@ export default function SettingsDialog({
         workers: Number(draft.workers),
         rate: Number(draft.rate),
       };
+      await api.saveSettings({ output_dir: outputDir.trim() });
       await onSave(normalized, serverToken ? "" : draftToken);
       onClose();
     } catch (err) {
-      setError(messageOf(err));
+      setError(humanizeError(err));
     } finally {
       setSaving(false);
     }
@@ -386,6 +404,58 @@ export default function SettingsDialog({
             Ranges split the ID window; workers fetch them in parallel.
             Discord&apos;s practical ceiling is about 8–10 requests per second.
             In whole-server mode, ranges apply to each channel.
+          </p>
+        </section>
+
+        <section
+          className="settings-section"
+          aria-labelledby="settings-location"
+        >
+          <div className="settings-section-head">
+            <FolderOutput size={16} strokeWidth={1.5} aria-hidden="true" />
+            <h3 className="settings-section-title" id="settings-location">
+              Save location
+            </h3>
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="settings-output-dir">
+              Export folder
+            </label>
+            <div className="settings-path">
+              <FolderOutput size={15} strokeWidth={1.5} aria-hidden="true" />
+              <input
+                id="settings-output-dir"
+                className="field-input"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={
+                  settingsLoading
+                    ? "Loading…"
+                    : "Default — keep each export with its job"
+                }
+                value={outputDir}
+                disabled={settingsLoading}
+                onChange={(event) => {
+                  setOutputDir(event.target.value);
+                  setError(null);
+                }}
+              />
+              {outputDir ? (
+                <button
+                  type="button"
+                  className="settings-path-reset"
+                  onClick={() => setOutputDir("")}
+                >
+                  Use default
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <p className="settings-hint">
+            Finished JSON files and downloaded attachments are copied into a
+            named folder here. Leave it blank to keep everything inside the
+            job folder. <code>~/Exports</code> is accepted.
           </p>
         </section>
 

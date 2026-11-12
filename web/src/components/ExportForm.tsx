@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
+  AlertTriangle,
   ArrowRight,
+  ChevronRight,
+  Crosshair,
   Hash,
   KeyRound,
   Play,
@@ -12,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../api";
+import { humanizeError } from "../lib/errors";
 import { fmt, shortDate } from "../lib/format";
 import SettingsDialog from "./SettingsDialog";
 import SelectMenu from "./SelectMenu";
@@ -55,7 +59,7 @@ const DEFAULTS: Fields = {
 };
 
 function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+  return humanizeError(err);
 }
 
 function clampNumber(
@@ -818,7 +822,7 @@ export default function ExportForm({
           <section className="target-panel" aria-labelledby="targetHeading">
             <div className="target-head">
               <span className="step-badge" aria-hidden="true">
-                2
+                <Crosshair size={15} strokeWidth={1.5} />
               </span>
               <div>
                 <h4 id="targetHeading">Choose the target</h4>
@@ -1103,16 +1107,32 @@ export default function ExportForm({
             )}
 
             {browseError && showManual ? (
-              <p className="console-note">
-                {browseError}{" "}
+              <div
+                className="inline-alert"
+                role="alert"
+                title={browseError}
+              >
+                <span className="inline-alert-icon" aria-hidden="true">
+                  <AlertTriangle size={16} strokeWidth={1.5} />
+                </span>
+                <div className="inline-alert-copy">
+                  <strong>
+                    {guildsError
+                      ? "Could not load your servers"
+                      : channelsError
+                        ? "Could not load this server's channels"
+                        : "Could not load recent authors"}
+                  </strong>
+                  <span>{humanizeError(browseError)}</span>
+                </div>
                 <button
                   type="button"
-                  className="portal-button-soft"
+                  className="soft-button"
                   onClick={showLists}
                 >
-                  Try lists again
+                  Try again
                 </button>
-              </p>
+              </div>
             ) : null}
           </section>
         </div>
@@ -1140,7 +1160,7 @@ export default function ExportForm({
                 {windowValue(fields)}
                 <button
                   type="button"
-                  className="link-button"
+                  className="preview-edit"
                   onClick={() => openSettings("window")}
                   aria-haspopup="dialog"
                 >
@@ -1251,7 +1271,13 @@ export default function ExportForm({
             aria-haspopup="dialog"
           >
             <SlidersHorizontal size={15} strokeWidth={1.5} aria-hidden="true" />
-            Export settings
+            <span>Export settings</span>
+            <ChevronRight
+              size={14}
+              strokeWidth={1.5}
+              aria-hidden="true"
+              className="preview-settings-arrow"
+            />
           </button>
         </aside>
       </form>
