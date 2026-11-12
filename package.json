@@ -1,0 +1,41 @@
+{
+  "name": "discord-messages-exporter",
+  "version": "0.1.0",
+  "description": "Resumable, rate-limit-aware export of Discord messages from a channel or server to JSON.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "discord-messages-exporter": "dist/src/cli.js",
+    "discord-messages-exporter-tui": "dist/src/tui.js",
+    "discord-messages-exporter-web": "dist/web/server.js"
+  },
+  "files": [
+    "dist",
+    "web/dist",
+    "docs",
+    "launchers",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "node -e \"const {chmodSync}=require('node:fs');for(const f of ['dist/src/cli.js','dist/src/tui.js','dist/web/server.js'])chmodSync(f,0o755)\"",
+    "prepack": "npm run build && npm run web:build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts web/tests/*.test.ts",
+    "dev:cli": "tsx src/cli.ts",
+    "dev:tui": "tsx src/tui.ts",
+    "web:install": "npm --prefix web install",
+    "web:build": "npm --prefix web run build",
+    "web:server": "tsx web/server.ts",
+    "web:start": "npm run build && npm run web:build && node dist/web/server.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

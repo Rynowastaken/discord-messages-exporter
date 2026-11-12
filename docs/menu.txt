@@ -1,0 +1,17 @@
+────────────────────────────────────────────────────────────────
+ Discord Messages Exporter v0.1.0  ·  signed in as namaenai._
+────────────────────────────────────────────────────────────────
+
+  Channel   1120284155578691676
+  Author    810409750625386497
+  Since     author's first message
+  Until     now
+  Workers   8   pace 6/s   ranges 140
+  Output    messages_<author>.json
+
+  [1] Look up author      (count and date range, no crawling)
+  [2] Export              (resumes if an earlier run stopped)
+  [3] Settings
+  [4] Open output folder
+  [q] Quit
+

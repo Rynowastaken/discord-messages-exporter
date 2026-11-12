@@ -1,0 +1,12 @@
+node_modules/
+dist/
+crawl_*/
+messages_*.json
+web/node_modules/
+web/dist/
+web/runs/
+web/exports/
+.impeccable/
+.env
+.env.*
+*.log

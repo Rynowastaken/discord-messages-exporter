@@ -1,0 +1,238 @@
+/*
+ * Discord Messages Exporter · Console — design tokens and base layer.
+ * Inherited from the NUTC portal: flat tinted-glass panes over a dark plum
+ * canvas, Albert Sans Light, one pink primary that owns live/current states.
+ */
+
+@font-face {
+  font-family: "Albert Sans";
+  src: url("/fonts/albert-sans.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Palette */
+  --canvas: #141018;
+  --foreground: #f7f1f6;
+  --muted: rgba(247, 241, 246, .72);
+  --faint: rgba(247, 241, 246, .62);
+
+  --primary: #f0a8c8;
+  --primary-soft: rgba(240, 168, 200, .14);
+  --primary-ring: rgba(240, 168, 200, .42);
+
+  --accent: #e8b86d;
+  --accent-soft: rgba(232, 184, 109, .12);
+
+  --danger: #f07178;
+  --danger-ink: #f4a0a5;
+
+  /* Glass material */
+  --glass: rgba(18, 15, 22, .46);
+  --glass-edge: rgba(255, 255, 255, .12);
+  --glass-edge-hover: rgba(255, 255, 255, .24);
+  --hairline: rgba(255, 255, 255, .08);
+  --glass-blur: blur(20px) saturate(160%);
+
+  /* Ink on primary fills */
+  --control-text: #17121b;
+
+  /* Radii */
+  --radius-chip: 3px;
+  --radius-inner: 4px;
+  --radius-control: 5px;
+  --radius-tile: 6px;
+  --radius-overlay: 8px;
+
+  /* Metrics */
+  --tile-gap: clamp(.5rem, 1.2vw, .75rem);
+  --container: 72rem;
+  --control-height: 42px;
+
+  /* Type */
+  --font-sans: "Albert Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+    "Noto Sans CJK TC", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
+/* ---------------------------------------------------------------- Reset -- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scrollbar-color: rgba(247, 241, 246, .22) transparent;
+  caret-color: var(--primary);
+  accent-color: var(--primary);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img,
+picture,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+svg {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: from-font;
+  text-underline-offset: .2em;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------ Selection / focus -- */
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible {
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+/* ------------------------------------------------------------ Scrollbar -- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(247, 241, 246, .18);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(247, 241, 246, .3);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ------------------------------------------------------ Reduced motion -- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
