@@ -1267,7 +1267,7 @@ export default function ExportForm({
           <button
             type="button"
             className="preview-settings"
-            onClick={() => openSettings("window")}
+            onClick={() => openSettings()}
             aria-haspopup="dialog"
           >
             <SlidersHorizontal size={15} strokeWidth={1.5} aria-hidden="true" />

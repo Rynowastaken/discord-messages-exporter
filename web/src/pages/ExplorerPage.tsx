@@ -211,6 +211,7 @@ export default function ExplorerPage() {
                 key={item.id}
                 role="link"
                 tabIndex={0}
+                title={`Open ${item.name}`}
                 aria-label={`Open ${item.name}`}
                 onClick={(event) => {
                   if (

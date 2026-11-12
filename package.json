@@ -1,6 +1,6 @@
 {
   "name": "discord-messages-exporter",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Resumable, rate-limit-aware export of Discord messages from a channel or server to JSON.",
   "type": "module",
   "license": "MIT",

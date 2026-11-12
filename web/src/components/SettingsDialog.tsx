@@ -87,7 +87,16 @@ export default function SettingsDialog({
         dialog.showModal();
         dialog.scrollTop = 0;
         if (!initialSection) {
-          requestAnimationFrame(() => dialog.focus());
+          requestAnimationFrame(() => {
+            const cancel = dialog.querySelector<HTMLButtonElement>(
+              ".settings-actions .glass-button"
+            );
+            if (cancel) {
+              cancel.focus({ preventScroll: true });
+            } else {
+              dialog.focus();
+            }
+          });
         }
         if (initialSection) {
           requestAnimationFrame(() => {
