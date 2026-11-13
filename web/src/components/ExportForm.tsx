@@ -35,6 +35,7 @@ import type {
 
 // Kept from the original name so saved form selections survive the rename.
 const STORAGE_KEY = "discord-author-export.settings.v1";
+const IDENTITY_STORAGE_KEY = "discord-author-export.identity.v1";
 
 const MODES: Array<[ExportMode, string]> = [
   ["author", "One author"],
@@ -182,6 +183,47 @@ export default function ExportForm({
   const startRef = useRef<HTMLButtonElement>(null);
   const addTokenRef = useRef<HTMLButtonElement>(null);
   const connectionRef = useRef<HTMLDivElement>(null);
+
+  // A target picked with one account may not exist for another. Clear it when
+  // the signed-in identity changes instead of carrying a stale channel into
+  // the new account's picker.
+  useEffect(() => {
+    const id = identity?.id ?? null;
+    if (!id) return;
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(IDENTITY_STORAGE_KEY);
+    } catch {
+      // Storage is optional; the in-memory form still works.
+    }
+    if (stored && stored !== id) {
+      setFields((current) => ({
+        ...current,
+        server: "",
+        channel: "",
+        author: "",
+      }));
+      setManualIds(false);
+      setGuilds([]);
+      setChannels([]);
+      setMembers([]);
+      setGuildsError(null);
+      setChannelsError(null);
+      setMembersError(null);
+      setSelectedUser(null);
+      setMemberQuery("");
+      setUserOpen(false);
+      setLookup(null);
+      setLookupError(null);
+      setFormError(null);
+      setStarted(false);
+    }
+    try {
+      localStorage.setItem(IDENTITY_STORAGE_KEY, id);
+    } catch {
+      // Storage is optional.
+    }
+  }, [identity?.id]);
 
   useEffect(() => {
     try {

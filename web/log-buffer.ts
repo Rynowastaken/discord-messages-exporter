@@ -142,7 +142,11 @@ export function buildLogDump(meta: LogDumpMeta): string {
     `Node: ${process.version}`,
     `Uptime: ${formatUptime(process.uptime())}`,
     `Token source: ${meta.tokenSource || "unknown"}`,
-    `Token storage: ${meta.tokenStorage || "unknown"}`,
+    `Keychain: ${
+      meta.tokenStorage === "os-keychain"
+        ? "available"
+        : "not available (memory only)"
+    }`,
     `Jobs: ${meta.activeJobs} active / ${meta.totalJobs} total`,
     "",
     "Recent activity:",
