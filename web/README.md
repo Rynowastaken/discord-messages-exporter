@@ -74,10 +74,11 @@ never saved there, logged, or included in an API response.
 
 The console prompts for a token immediately when no credential is configured,
 and the sidebar's token control reopens the prompt. On Linux, **Remember in the
-OS keychain** stores it through Secret Service (`secret-tool`) and restores it
-on restart; without a keychain it stays in server memory. `DISCORD_TOKEN`
-takes precedence. The browser never stores the token in `localStorage` or
-`sessionStorage`.
+OS keychain** stores it through Secret Service (`secret-tool`); on Windows the
+token is encrypted with DPAPI for the current Windows account and written to
+`token.enc` beside the settings. Without either facility it stays in server
+memory. `DISCORD_TOKEN` takes precedence. The browser never stores the token in
+`localStorage` or `sessionStorage`.
 
 The console calls `GET /api/token` to resolve the credential source and
 `POST /api/me` once to resolve the token's own Discord user, then shows
@@ -151,7 +152,7 @@ server restarts; the work directories do not.
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/status` | server token presence/type, source, keychain availability, and job summaries |
+| GET | `/api/status` | server token presence/type, source, secure-storage availability, and job summaries |
 | GET | `/api/logs` | downloadable diagnostic log of recent server activity, with token-like values redacted |
 | GET | `/api/token` | token configured/source/storage (never the token) |
 | POST | `/api/token` | verify and hold a token (`token`, `is_bot`, `remember`) |

@@ -41,7 +41,9 @@ export default function TokenPrompt({
       .then((value) => {
         setStatus(value);
         setIsBot(value.is_bot);
-        setRemember(value.storage === "os-keychain");
+        setRemember(
+          value.storage === "os-keychain" || value.storage === "encrypted-file"
+        );
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : String(err));
@@ -67,6 +69,13 @@ export default function TokenPrompt({
   if (!open) return null;
 
   const keychain = status?.storage === "os-keychain";
+  const encryptedFile = status?.storage === "encrypted-file";
+  const canRemember = keychain || encryptedFile;
+  const storageLabel = keychain
+    ? "Saved in the OS keychain"
+    : encryptedFile
+      ? "Encrypted for this Windows account"
+      : "No secure storage — memory only";
   const envConfigured = status?.source === "env";
   const stored = status?.source === "stored";
 
@@ -241,11 +250,13 @@ export default function TokenPrompt({
             </fieldset>
 
             <label
-              className={`token-remember${keychain ? "" : " token-remember--disabled"}`}
+              className={`token-remember${canRemember ? "" : " token-remember--disabled"}`}
               title={
-                keychain
-                  ? "Save in the operating system keychain"
-                  : "No OS keychain is available on this server"
+                canRemember
+                  ? encryptedFile
+                    ? "Save encrypted for this Windows account"
+                    : "Save in the operating system keychain"
+                  : "No secure storage is available on this server"
               }
             >
               <span className="token-remember-icon" aria-hidden="true">
@@ -253,17 +264,13 @@ export default function TokenPrompt({
               </span>
               <span className="token-remember-copy">
                 <strong>Remember on this device</strong>
-                <small>
-                  {keychain
-                    ? "Saved in the OS keychain"
-                    : "No OS keychain — memory only"}
-                </small>
+                <small>{storageLabel}</small>
               </span>
               <input
                 type="checkbox"
                 className="token-switch"
-                checked={remember && keychain}
-                disabled={!keychain}
+                checked={remember && canRemember}
+                disabled={!canRemember}
                 onChange={(event) => setRemember(event.target.checked)}
               />
             </label>

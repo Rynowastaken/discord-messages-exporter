@@ -74,7 +74,7 @@ npm run web:start
 
 ## 🔐 Your data stays yours
 
-- Your Discord token stays in the server process, or in your operating system's keychain if you choose to remember it. It is never written to browser storage.
+- Your Discord token stays in the server process, or in the OS keychain on Linux / a Windows-account-encrypted file on Windows if you choose to remember it. It is never written to browser storage.
 - Exports, indexes, and settings are stored locally on your machine.
 - Attachment downloads are optional. When you skip them, the export keeps metadata and Discord's signed CDN links — which expire.
 - You can point the export folder anywhere you like in **Settings → Files**.
@@ -85,6 +85,7 @@ npm run web:start
 
 - **Large exports are fine.** Crawls are split into ranges, progress is saved, and interrupted exports resume where they stopped.
 - **Nothing is overwritten.** The Explorer reads exports without modifying them.
+- **Where do exports go?** Each run is written to the app data folder under `runs/<job>/messages.json`. Set an **Export folder** in **Settings → Files** to also get a copy in a named folder you choose.
 - **Imported files work too.** Already have a messages JSON? Drop it into the Explorer and it gets indexed for search and charts.
 - **Need to report a problem?** Download a diagnostic server log from **Settings → Files → Download logs**. Tokens are redacted.
 - **The JSON is yours.** It is human-readable and works without this app.

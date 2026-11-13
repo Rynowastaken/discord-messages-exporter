@@ -166,7 +166,7 @@ export interface StatusResponse {
   server_token: boolean;
   server_token_is_bot: boolean;
   token_source?: "env" | "stored" | "none";
-  token_storage?: "os-keychain" | "memory";
+  token_storage?: "os-keychain" | "encrypted-file" | "memory";
   jobs: Job[];
 }
 
@@ -245,7 +245,7 @@ export interface TokenStatus {
   configured: boolean;
   source: "env" | "stored" | "none";
   is_bot: boolean;
-  storage: "os-keychain" | "memory";
+  storage: "os-keychain" | "encrypted-file" | "memory";
   remembered?: boolean;
   user?: Identity;
 }
