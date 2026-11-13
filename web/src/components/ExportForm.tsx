@@ -162,6 +162,7 @@ export default function ExportForm({
   const [manualIds, setManualIds] = useState(false);
   const [guilds, setGuilds] = useState<GuildOption[]>([]);
   const [guildsLoading, setGuildsLoading] = useState(false);
+  const [guildsLoaded, setGuildsLoaded] = useState(false);
   const [guildsError, setGuildsError] = useState<string | null>(null);
   const [channels, setChannels] = useState<ChannelOption[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
@@ -184,6 +185,30 @@ export default function ExportForm({
   const addTokenRef = useRef<HTMLButtonElement>(null);
   const connectionRef = useRef<HTMLDivElement>(null);
 
+  function clearTargetSelection() {
+    setFields((current) => ({
+      ...current,
+      server: "",
+      channel: "",
+      author: "",
+    }));
+    setManualIds(false);
+    setGuilds([]);
+    setGuildsLoaded(false);
+    setChannels([]);
+    setMembers([]);
+    setGuildsError(null);
+    setChannelsError(null);
+    setMembersError(null);
+    setSelectedUser(null);
+    setMemberQuery("");
+    setUserOpen(false);
+    setLookup(null);
+    setLookupError(null);
+    setFormError(null);
+    setStarted(false);
+  }
+
   // A target picked with one account may not exist for another. Clear it when
   // the signed-in identity changes instead of carrying a stale channel into
   // the new account's picker.
@@ -197,26 +222,7 @@ export default function ExportForm({
       // Storage is optional; the in-memory form still works.
     }
     if (stored && stored !== id) {
-      setFields((current) => ({
-        ...current,
-        server: "",
-        channel: "",
-        author: "",
-      }));
-      setManualIds(false);
-      setGuilds([]);
-      setChannels([]);
-      setMembers([]);
-      setGuildsError(null);
-      setChannelsError(null);
-      setMembersError(null);
-      setSelectedUser(null);
-      setMemberQuery("");
-      setUserOpen(false);
-      setLookup(null);
-      setLookupError(null);
-      setFormError(null);
-      setStarted(false);
+      clearTargetSelection();
     }
     try {
       localStorage.setItem(IDENTITY_STORAGE_KEY, id);
@@ -241,6 +247,10 @@ export default function ExportForm({
   const authorMissing = mode === "author" && !fields.author.trim();
   const serverMissing = mode === "server" && !fields.server.trim();
   const idsReady = !channelMissing && !authorMissing && !serverMissing;
+  const serverInGuildList =
+    !fields.server ||
+    (guildsLoaded &&
+      guilds.some((guild) => guild.id === fields.server));
   const setupBlocked = !tokenUsable || !idsReady;
 
   const showManual = manualIds || !tokenUsable;
@@ -331,7 +341,10 @@ export default function ExportForm({
         }
       })
       .finally(() => {
-        if (!cancelled) setGuildsLoading(false);
+        if (!cancelled) {
+          setGuildsLoading(false);
+          setGuildsLoaded(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -339,7 +352,49 @@ export default function ExportForm({
   }, [tokenUsable, manualIds, browseToken, fields.is_bot]);
 
   useEffect(() => {
-    if (!tokenUsable || manualIds || mode === "server" || !fields.server) {
+    if (
+      !tokenUsable ||
+      manualIds ||
+      guildsLoading ||
+      !guildsLoaded ||
+      !fields.server
+    ) {
+      return;
+    }
+    if (!guilds.some((guild) => guild.id === fields.server)) {
+      setFields((current) => ({
+        ...current,
+        server: "",
+        channel: "",
+        author: "",
+      }));
+      setChannels([]);
+      setMembers([]);
+      setSelectedUser(null);
+      setMemberQuery("");
+      setUserOpen(false);
+      setLookup(null);
+      setLookupError(null);
+      setStarted(false);
+    }
+  }, [
+    fields.server,
+    guilds,
+    guildsLoaded,
+    guildsLoading,
+    manualIds,
+    tokenUsable,
+  ]);
+
+  useEffect(() => {
+    if (
+      !tokenUsable ||
+      manualIds ||
+      mode === "server" ||
+      !fields.server ||
+      !guildsLoaded ||
+      !serverInGuildList
+    ) {
       setChannelsLoading(false);
       return undefined;
     }
@@ -368,7 +423,16 @@ export default function ExportForm({
     return () => {
       cancelled = true;
     };
-  }, [tokenUsable, manualIds, mode, fields.server, browseToken, fields.is_bot]);
+  }, [
+    tokenUsable,
+    manualIds,
+    mode,
+    fields.server,
+    browseToken,
+    fields.is_bot,
+    guildsLoaded,
+    serverInGuildList,
+  ]);
 
   useEffect(() => {
     if (
@@ -412,7 +476,15 @@ export default function ExportForm({
   ]);
 
   useEffect(() => {
-    if (!tokenUsable || manualIds || mode !== "author" || !fields.channel) {
+    if (
+      !tokenUsable ||
+      manualIds ||
+      mode !== "author" ||
+      !fields.channel ||
+      !fields.server ||
+      !guildsLoaded ||
+      !serverInGuildList
+    ) {
       setMembers([]);
       setMembersError(null);
       setMembersLoading(false);
@@ -444,7 +516,17 @@ export default function ExportForm({
     return () => {
       cancelled = true;
     };
-  }, [tokenUsable, manualIds, mode, fields.channel, browseToken, fields.is_bot]);
+  }, [
+    tokenUsable,
+    manualIds,
+    mode,
+    fields.channel,
+    fields.server,
+    browseToken,
+    fields.is_bot,
+    guildsLoaded,
+    serverInGuildList,
+  ]);
 
   useEffect(() => {
     if (!userOpen) return undefined;
@@ -647,13 +729,7 @@ export default function ExportForm({
   }
 
   function showLists() {
-    setMemberQuery("");
-    setMembers([]);
-    setMembersError(null);
-    setChannelsError(null);
-    setGuildsError(null);
-    setUserOpen(false);
-    setManualIds(false);
+    clearTargetSelection();
   }
 
   function openUsers() {
