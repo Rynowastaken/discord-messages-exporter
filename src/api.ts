@@ -11,11 +11,11 @@
  *   page, which silently duplicates thousands of records. Every walk here
  *   therefore uses exactly one cursor.
  */
+import { VERSION } from "./version.js";
 import { sleep } from "./util.js";
 
 export const API_BASE = "https://discord.com/api/v10";
-export const BOT_USER_AGENT =
-  "DiscordBot (https://github.com/Rynowastaken/discord-messages-exporter, 0.2.0)";
+export const BOT_USER_AGENT = `DiscordBot (https://github.com/Rynowastaken/discord-messages-exporter, ${VERSION})`;
 export const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
