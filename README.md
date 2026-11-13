@@ -86,6 +86,7 @@ npm run web:start
 - **Large exports are fine.** Crawls are split into ranges, progress is saved, and interrupted exports resume where they stopped.
 - **Nothing is overwritten.** The Explorer reads exports without modifying them.
 - **Imported files work too.** Already have a messages JSON? Drop it into the Explorer and it gets indexed for search and charts.
+- **Need to report a problem?** Download a diagnostic server log from **Settings → Files → Download logs**. Tokens are redacted.
 - **The JSON is yours.** It is human-readable and works without this app.
 
 ## License

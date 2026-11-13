@@ -99,6 +99,7 @@ import {
 } from "./settings.js";
 import { checkForUpdates } from "./updates.js";
 import { listDirectories } from "./fs-browser.js";
+import { buildLogDump, installLogCapture } from "./log-buffer.js";
 import {
   downloadExportAttachments,
   readAttachmentManifest,
@@ -969,6 +970,7 @@ export class Job {
       } else {
         this.error = String(err);
       }
+      console.error(`[job ${this.id}] failed: ${this.error}`);
     } finally {
       this.finishedAt = nowIso();
       this.token = "";
@@ -1407,6 +1409,34 @@ function apiError(res: ServerResponse, message: string, status = 400): void {
   sendJson(res, { error: message }, status);
 }
 
+function sendLogDump(res: ServerResponse): void {
+  const jobs = listJobs();
+  const activeJobs = jobs.filter((job) =>
+    ["queued", "resolving", "running", "stopping"].includes(
+      String(job.status)
+    )
+  ).length;
+  const body = Buffer.from(
+    buildLogDump({
+      version: VERSION,
+      tokenSource: tokenSource(),
+      tokenStorage: tokenStorage(),
+      activeJobs,
+      totalJobs: jobs.length,
+    }),
+    "utf8"
+  );
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  res.writeHead(200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Content-Disposition": `attachment; filename="discord-messages-exporter_${stamp}.log"`,
+    "Content-Length": String(body.length),
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+  res.end(body);
+}
+
 function serveStatic(res: ServerResponse, pathname: string): void {
   if (!existsSync(DIST_DIR) || !statSync(DIST_DIR).isDirectory()) {
     const body = Buffer.from(
@@ -1671,6 +1701,13 @@ async function handleBrowse(
     }
     sendJson(res, { members: rows });
   } catch (err) {
+    const detail =
+      err instanceof DiscordError
+        ? `Discord error ${err.status}: ${err.body.slice(0, 300)}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    console.error(`[browse ${kind}] ${detail}`);
     if (err instanceof DiscordError) {
       if (kind === "members" && err.status === 403) {
         apiError(
@@ -1685,11 +1722,11 @@ async function handleBrowse(
           403
         );
       } else {
-        apiError(res, `Discord error ${err.status}: ${err.body.slice(0, 300)}`, 502);
+        apiError(res, detail, 502);
       }
       return;
     }
-    apiError(res, err instanceof Error ? err.message : String(err), 500);
+    apiError(res, detail, 500);
   }
 }
 
@@ -1818,6 +1855,13 @@ async function handleStartJob(
     );
     return;
   }
+  const target =
+    job.config.mode === "server"
+      ? job.config.server
+      : job.config.channel;
+  console.log(
+    `[job ${job.id}] starting · ${job.config.mode}${target ? ` ${target}` : ""}`
+  );
   addJob(job);
   job.start();
   sendJson(res, { job: job.asDict(false) }, 202);
@@ -2429,6 +2473,10 @@ async function handle(
     }
     if (await handleExports(req, res, url)) return;
     if (method === "GET") {
+      if (pathname === "/api/logs") {
+        sendLogDump(res);
+        return;
+      }
       if (pathname === "/api/status") {
         sendJson(res, {
           ok: true,
@@ -2571,6 +2619,7 @@ export function createApp(): Server {
 export async function main(
   argv: string[] = process.argv.slice(2)
 ): Promise<number> {
+  installLogCapture();
   let values: {
     host?: string;
     port?: string;

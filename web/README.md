@@ -152,6 +152,7 @@ server restarts; the work directories do not.
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/status` | server token presence/type, source, keychain availability, and job summaries |
+| GET | `/api/logs` | downloadable diagnostic log of recent server activity, with token-like values redacted |
 | GET | `/api/token` | token configured/source/storage (never the token) |
 | POST | `/api/token` | verify and hold a token (`token`, `is_bot`, `remember`) |
 | DELETE | `/api/token` | forget the remembered token |

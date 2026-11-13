@@ -128,6 +128,7 @@ export const api = {
       ),
     }),
   downloadUrl: (id: string) => `/api/jobs/${id}/download`,
+  logsDownloadUrl: () => "/api/logs",
 
   exports: () => request<ExportsResponse>("/api/exports"),
   exportDetail: (id: string) =>

@@ -1309,6 +1309,32 @@ async function main() {
       });
     }
 
+    for (const [name, width, height, mobile] of [
+      ["settings-diagnostics-desktop", 1440, 1000, false],
+      ["settings-diagnostics-mobile", 390, 844, true],
+    ]) {
+      scenarios.push({
+        name,
+        path: "/export",
+        width,
+        height,
+        mobile,
+        prepare: async (page) => {
+          await page.clickText("Export settings");
+          await page.waitFor(
+            "Boolean(document.querySelector('.settings-dialog[open]'))"
+          );
+          await page.clickText("Files");
+          await sleep(350);
+          await page.evaluate(
+            "document.getElementById('settings-diagnostics')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(300);
+        },
+        expect: `Boolean(document.querySelector('a[href="/api/logs"]'))`,
+      });
+    }
+
     for (const scenario of scenarios) {
       const target = await (
         await fetch(`${endpoint}/json/new?${encodeURIComponent("about:blank")}`, {

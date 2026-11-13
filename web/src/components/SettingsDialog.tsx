@@ -18,6 +18,7 @@ import {
   KeyRound,
   Palette,
   RefreshCw,
+  ScrollText,
   Settings2,
   X,
 } from "lucide-react";
@@ -1224,6 +1225,39 @@ export default function SettingsDialog({
               />
             </label>
           </div>
+        </section>
+
+        <section
+          className="settings-section"
+          aria-labelledby="settings-diagnostics"
+        >
+          <div className="settings-section-head">
+            <ScrollText size={16} strokeWidth={1.5} aria-hidden="true" />
+            <h3 className="settings-section-title" id="settings-diagnostics">
+              Diagnostics
+            </h3>
+          </div>
+          <div className="update-panel">
+            <div className="update-copy">
+              <strong>Server log</strong>
+              <span>
+                Recent activity and errors with tokens redacted. Attach this
+                file when reporting a problem.
+              </span>
+            </div>
+            <a
+              className="soft-button"
+              href={api.logsDownloadUrl()}
+              download
+            >
+              <Download size={14} strokeWidth={1.5} aria-hidden="true" />
+              Download logs
+            </a>
+          </div>
+          <p className="settings-hint">
+            The log may include file paths and export IDs. Your Discord token
+            is never written to it.
+          </p>
         </section>
         </div>
         ) : null}

@@ -850,6 +850,9 @@ export default function ExportForm({
                         spellCheck="false"
                         placeholder="e.g. 123456789012345678"
                         aria-required="true"
+                        aria-describedby={
+                          browseError ? "export-browse-error" : undefined
+                        }
                         value={fields.server}
                         onChange={(event) => chooseServer(event.target.value)}
                       />
@@ -873,6 +876,9 @@ export default function ExportForm({
                         spellCheck="false"
                         placeholder="e.g. 123456789012345678"
                         aria-required="true"
+                        aria-describedby={
+                          browseError ? "export-browse-error" : undefined
+                        }
                         value={fields.channel}
                         onChange={(event) => set("channel", event.target.value)}
                       />
@@ -891,6 +897,9 @@ export default function ExportForm({
                           spellCheck="false"
                           placeholder="e.g. 123456789012345678"
                           aria-required="true"
+                          aria-describedby={
+                            browseError ? "export-browse-error" : undefined
+                          }
                           value={fields.author}
                           onChange={(event) => set("author", event.target.value)}
                         />
@@ -898,6 +907,35 @@ export default function ExportForm({
                     ) : null}
                   </div>
                 )}
+                {browseError ? (
+                  <div
+                    className="inline-alert"
+                    role="alert"
+                    id="export-browse-error"
+                    title={browseError}
+                  >
+                    <span className="inline-alert-icon" aria-hidden="true">
+                      <AlertTriangle size={16} strokeWidth={1.5} />
+                    </span>
+                    <div className="inline-alert-copy">
+                      <strong>
+                        {guildsError
+                          ? "Could not load your servers"
+                          : channelsError
+                            ? "Could not load this server's channels"
+                            : "Could not load recent authors"}
+                      </strong>
+                      <span>{humanizeError(browseError)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="soft-button"
+                      onClick={showLists}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
                 {tokenUsable ? (
                   <div className="picker-foot">
                     <button
@@ -1105,35 +1143,6 @@ export default function ExportForm({
                 </div>
               </>
             )}
-
-            {browseError && showManual ? (
-              <div
-                className="inline-alert"
-                role="alert"
-                title={browseError}
-              >
-                <span className="inline-alert-icon" aria-hidden="true">
-                  <AlertTriangle size={16} strokeWidth={1.5} />
-                </span>
-                <div className="inline-alert-copy">
-                  <strong>
-                    {guildsError
-                      ? "Could not load your servers"
-                      : channelsError
-                        ? "Could not load this server's channels"
-                        : "Could not load recent authors"}
-                  </strong>
-                  <span>{humanizeError(browseError)}</span>
-                </div>
-                <button
-                  type="button"
-                  className="soft-button"
-                  onClick={showLists}
-                >
-                  Try again
-                </button>
-              </div>
-            ) : null}
           </section>
         </div>
 

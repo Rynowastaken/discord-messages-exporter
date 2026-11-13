@@ -18,6 +18,7 @@ import {
   setClientFactory,
   textChannels,
 } from "../server.js";
+import { recordLog } from "../log-buffer.js";
 
 interface JobInternals {
   run(): Promise<void>;
@@ -659,6 +660,33 @@ describe("browse API", () => {
     assert.equal(typeof payload.server_token, "boolean");
     assert.equal(typeof payload.server_token_is_bot, "boolean");
     assert.ok(Array.isArray(payload.jobs));
+  });
+
+  test("downloads redacted server logs", async () => {
+    const fakeToken = [
+      "MTIzNDU2Nzg5MDEyMzQ1Njc4",
+      "GaBsCd",
+      "EfGhIjKlMnOpQrStUvWxYz0123456789",
+    ].join(".");
+    recordLog(
+      "error",
+      `Discord error 404: token=${fakeToken} authorization: Bearer ${fakeToken}`
+    );
+
+    const response = await fetch(base + "/api/logs");
+    assert.equal(response.status, 200);
+    assert.match(
+      response.headers.get("content-type") ?? "",
+      /text\/plain/
+    );
+    assert.match(
+      response.headers.get("content-disposition") ?? "",
+      /attachment; filename="discord-messages-exporter_.*\.log"/
+    );
+    const body = await response.text();
+    assert.match(body, /Discord Messages Exporter diagnostic log/);
+    assert.match(body, /\[redacted\]/);
+    assert.ok(!body.includes(fakeToken));
   });
 
   test("verifies and stores a token without returning it", async () => {
