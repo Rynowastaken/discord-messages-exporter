@@ -25,22 +25,22 @@
   --faint: rgba(247, 241, 246, .62);
 
   --primary: #f0a8c8;
-  --primary-soft: rgba(240, 168, 200, .14);
-  --primary-ring: rgba(240, 168, 200, .42);
+  --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
+  --primary-ring: color-mix(in srgb, var(--primary) 42%, transparent);
 
   --accent: #e8b86d;
-  --accent-soft: rgba(232, 184, 109, .12);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
 
   --secondary: #51314a;
   --neutral: #151018;
   --danger: #f07178;
-  --danger-ink: #f4a0a5;
+  --danger-ink: color-mix(in srgb, var(--danger) 67%, white);
 
   /* Theme controls, kept in sync with the generated palette. */
   --control-bg: var(--primary);
-  --control-border: rgba(240, 168, 200, .72);
+  --control-border: color-mix(in srgb, var(--primary) 72%, transparent);
   --control-hover-bg: var(--accent);
-  --control-hover-border: rgba(232, 184, 109, .78);
+  --control-hover-border: color-mix(in srgb, var(--accent) 78%, transparent);
   --control-hover-text: #17121b;
 
   /* Glass material */

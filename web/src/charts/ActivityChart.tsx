@@ -120,8 +120,8 @@ export default function ActivityChart({ days }: ActivityChartProps) {
         >
           <defs>
             <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f0a8c8" stopOpacity=".34" />
-              <stop offset="100%" stopColor="#f0a8c8" stopOpacity="0" />
+              <stop offset="0%" className="activity-fill-start" />
+              <stop offset="100%" className="activity-fill-end" />
             </linearGradient>
           </defs>
           <line

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type {
+  CSSProperties,
   FormEvent,
   KeyboardEvent,
   ReactNode,
@@ -13,6 +14,7 @@ import {
   Gauge,
   ImageMinus,
   ImageUp,
+  Image as ImageIcon,
   KeyRound,
   Palette,
   RefreshCw,
@@ -51,6 +53,13 @@ const SETTINGS_TABS: Array<{
   { id: "files", label: "Files", icon: FolderOutput },
   { id: "updates", label: "Updates", icon: RefreshCw },
 ];
+
+const PALETTE_ROLES = ["Primary", "Accent", "Secondary", "Danger", "Neutral"];
+
+function rangeFill(value: number, min: number, max: number): string {
+  const percent = ((value - min) / (max - min)) * 100;
+  return `${Math.min(100, Math.max(0, percent))}%`;
+}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -447,6 +456,7 @@ export default function SettingsDialog({
   const backgroundPreview =
     stagedBackground ?? (removeBackground ? null : backgroundUrl);
   const pendingRemoval = removeBackground && Boolean(backgroundUrl);
+  const activePalette = paletteFor(appearance);
 
   return (
     <dialog
@@ -694,14 +704,17 @@ export default function SettingsDialog({
         >
         <section
           className="settings-section"
-          aria-labelledby="settings-appearance"
+          aria-labelledby="settings-theme"
         >
-          <h3 className="sr-only" id="settings-appearance">
-            Appearance
-          </h3>
-          <div className="appearance-label-row">
-            <span className="field-label">Color scheme</span>
-            <span className="appearance-live-note">Live preview</span>
+          <div className="settings-section-head">
+            <Palette size={16} strokeWidth={1.5} aria-hidden="true" />
+            <h3 className="settings-section-title" id="settings-theme">
+              Color scheme
+            </h3>
+            <span className="appearance-live-note">
+              <span className="appearance-live-dot" aria-hidden="true" />
+              Live preview
+            </span>
           </div>
           <div
             className="appearance-schemes"
@@ -709,7 +722,6 @@ export default function SettingsDialog({
             aria-label="Color scheme"
           >
             {COLOR_SCHEME_ORDER.map((id) => {
-              const palette = paletteFor({ ...appearance, scheme: id });
               const selected = appearance.scheme === id;
               return (
                 <button
@@ -723,20 +735,25 @@ export default function SettingsDialog({
                     setError(null);
                   }}
                 >
-                  <span className="appearance-swatch" aria-hidden="true">
-                    {palette.slice(0, 3).map((color, index) => (
-                      <span
-                        key={`${id}-${index}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </span>
-                  <span className="appearance-scheme-name">
-                    {COLOR_SCHEMES[id].name}
-                  </span>
+                  {COLOR_SCHEMES[id].name}
                 </button>
               );
             })}
+          </div>
+          <div
+            className="appearance-preview"
+            role="img"
+            aria-label={`Generated palette: ${PALETTE_ROLES.map(
+              (role, index) => `${role} ${activePalette[index]}`
+            ).join(", ")}`}
+          >
+            {activePalette.map((color, index) => (
+              <span
+                key={`${color}-${index}`}
+                style={{ backgroundColor: color }}
+                title={PALETTE_ROLES[index]}
+              />
+            ))}
           </div>
 
           <div className="appearance-sliders">
@@ -751,6 +768,11 @@ export default function SettingsDialog({
                 max="1.5"
                 step="0.05"
                 value={appearance.colorfulness}
+                style={
+                  {
+                    "--fill": rangeFill(appearance.colorfulness, 0.5, 1.5),
+                  } as CSSProperties
+                }
                 onChange={(event) => {
                   setAppearance((current) => ({
                     ...current,
@@ -771,6 +793,11 @@ export default function SettingsDialog({
                 max="1.5"
                 step="0.05"
                 value={appearance.brightness}
+                style={
+                  {
+                    "--fill": rangeFill(appearance.brightness, 0.5, 1.5),
+                  } as CSSProperties
+                }
                 onChange={(event) => {
                   setAppearance((current) => ({
                     ...current,
@@ -781,10 +808,20 @@ export default function SettingsDialog({
               />
             </label>
           </div>
+        </section>
 
+        <section
+          className="settings-section"
+          aria-labelledby="settings-backdrop"
+        >
+          <div className="settings-section-head">
+            <ImageIcon size={16} strokeWidth={1.5} aria-hidden="true" />
+            <h3 className="settings-section-title" id="settings-backdrop">
+              Backdrop
+            </h3>
+          </div>
           <div className="settings-subsection">
-            <span className="field-label">Background image</span>
-            <div className="appearance-background">
+            <div className="appearance-background-card">
               <div
                 className={`appearance-background-preview${
                   backgroundPreview ? "" : " is-empty"
@@ -794,121 +831,144 @@ export default function SettingsDialog({
                     ? { backgroundImage: `url("${backgroundPreview}")` }
                     : undefined
                 }
-                aria-hidden="true"
               >
-                {backgroundPreview ? null : <span>Portal gradient</span>}
-              </div>
-              <div className="appearance-background-actions">
-                <input
-                  ref={backgroundInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  hidden
-                  onChange={(event) =>
-                    void chooseBackgroundImage(event.target.files?.[0])
-                  }
-                />
-                <button
-                  type="button"
-                  className="soft-button"
-                  disabled={backgroundBusy}
-                  onClick={() => backgroundInputRef.current?.click()}
-                >
-                  <ImageUp size={14} strokeWidth={1.5} aria-hidden="true" />
+                <span className="appearance-background-badge">
                   {backgroundBusy
-                    ? "Preparing…"
+                    ? "Preparing image…"
                     : backgroundPreview
-                      ? "Change image"
-                      : "Choose image"}
-                </button>
-                {backgroundPreview ? (
+                      ? "Custom image"
+                      : "Palette gradient"}
+                </span>
+              </div>
+              <div className="appearance-background-bar">
+                <span className="appearance-background-note">
+                  {backgroundPreview
+                    ? "Saved with settings on this server"
+                    : "Generated from this palette"}
+                </span>
+                <div className="appearance-background-actions">
+                  <input
+                    ref={backgroundInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    hidden
+                    onChange={(event) =>
+                      void chooseBackgroundImage(event.target.files?.[0])
+                    }
+                  />
                   <button
                     type="button"
-                    className="soft-button"
+                    className="portal-button-soft"
                     disabled={backgroundBusy}
-                    onClick={() => {
-                      setStagedBackground(null);
-                      setRemoveBackground(true);
-                      setError(null);
-                    }}
+                    onClick={() => backgroundInputRef.current?.click()}
                   >
-                    <ImageMinus size={14} strokeWidth={1.5} aria-hidden="true" />
-                    Remove
+                    <ImageUp size={14} strokeWidth={1.5} aria-hidden="true" />
+                    {backgroundBusy
+                      ? "Preparing…"
+                      : backgroundPreview
+                        ? "Change image"
+                        : "Choose image"}
                   </button>
-                ) : pendingRemoval ? (
-                  <button
-                    type="button"
-                    className="soft-button"
-                    onClick={() => setRemoveBackground(false)}
-                  >
-                    Undo
-                  </button>
-                ) : null}
+                  {backgroundPreview ? (
+                    <button
+                      type="button"
+                      className="portal-button-soft"
+                      disabled={backgroundBusy}
+                      onClick={() => {
+                        setStagedBackground(null);
+                        setRemoveBackground(true);
+                        setError(null);
+                      }}
+                    >
+                      <ImageMinus
+                        size={14}
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                      />
+                      Remove
+                    </button>
+                  ) : pendingRemoval ? (
+                    <button
+                      type="button"
+                      className="portal-button-soft"
+                      onClick={() => setRemoveBackground(false)}
+                    >
+                      Undo
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
+            {backgroundPreview ? (
+              <div className="appearance-sliders">
+                <label className="appearance-slider">
+                  <span className="appearance-slider-head">
+                    <span>Background brightness</span>
+                    <output>{appearance.background_brightness}%</output>
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    step="5"
+                    value={appearance.background_brightness}
+                    style={
+                      {
+                        "--fill": rangeFill(
+                          appearance.background_brightness,
+                          0,
+                          200
+                        ),
+                      } as CSSProperties
+                    }
+                    onChange={(event) => {
+                      setAppearance((current) => ({
+                        ...current,
+                        background_brightness: Number(event.target.value),
+                      }));
+                      setError(null);
+                    }}
+                  />
+                </label>
+                <label className="appearance-slider">
+                  <span className="appearance-slider-head">
+                    <span>Background blur</span>
+                    <output>{appearance.background_blur}%</output>
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={appearance.background_blur}
+                    style={
+                      {
+                        "--fill": rangeFill(
+                          appearance.background_blur,
+                          0,
+                          100
+                        ),
+                      } as CSSProperties
+                    }
+                    onChange={(event) => {
+                      setAppearance((current) => ({
+                        ...current,
+                        background_blur: Number(event.target.value),
+                      }));
+                      setError(null);
+                    }}
+                  />
+                </label>
+              </div>
+            ) : null}
             <p className="settings-hint">
-              PNG, JPEG, or WebP. The image is scaled to 1280px and saved on
-              this server, so every browser sees it.
+              PNG, JPEG, or WebP. Scaled to 1280px and saved with the other
+              settings.
+              {backgroundPreview
+                ? " Lower brightness deepens the overlay; blur softens it behind the glass."
+                : ""}
             </p>
           </div>
-
-          <div className="appearance-sliders">
-            <label
-              className={`appearance-slider${
-                backgroundPreview ? "" : " is-disabled"
-              }`}
-            >
-              <span className="appearance-slider-head">
-                <span>Background brightness</span>
-                <output>{appearance.background_brightness}%</output>
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="200"
-                step="5"
-                disabled={!backgroundPreview}
-                value={appearance.background_brightness}
-                onChange={(event) => {
-                  setAppearance((current) => ({
-                    ...current,
-                    background_brightness: Number(event.target.value),
-                  }));
-                  setError(null);
-                }}
-              />
-            </label>
-            <label
-              className={`appearance-slider${
-                backgroundPreview ? "" : " is-disabled"
-              }`}
-            >
-              <span className="appearance-slider-head">
-                <span>Background blur</span>
-                <output>{appearance.background_blur}%</output>
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                disabled={!backgroundPreview}
-                value={appearance.background_blur}
-                onChange={(event) => {
-                  setAppearance((current) => ({
-                    ...current,
-                    background_blur: Number(event.target.value),
-                  }));
-                  setError(null);
-                }}
-              />
-            </label>
-          </div>
-          <p className="settings-hint">
-            100% brightness keeps the original image; lower values deepen the
-            overlay, higher values reveal more of it. Blur softens the image
-            behind the glass without hiding it.
-          </p>
         </section>
         </div>
         ) : null}
@@ -1052,17 +1112,16 @@ export default function SettingsDialog({
               >
                 Browse
               </button>
-              {outputDir ? (
-                <button
-                  type="button"
-                  className="settings-path-reset"
-                  onClick={() => setOutputDir("")}
-                  title="Use the default job folder"
-                >
-                  Reset
-                </button>
-              ) : null}
             </div>
+            {outputDir ? (
+              <button
+                type="button"
+                className="settings-path-reset"
+                onClick={() => setOutputDir("")}
+              >
+                Use the default job folder
+              </button>
+            ) : null}
           </div>
           {folderBrowserOpen ? (
             <div ref={folderBrowserRef}>

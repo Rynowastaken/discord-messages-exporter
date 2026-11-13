@@ -3,11 +3,6 @@ import type { KeyboardEvent } from "react";
 import { fmt, runTint, snowflakeDate } from "../lib/format";
 import type { ChartRun } from "../types";
 
-const TINT_RGB = {
-  primary: "240,168,200",
-  accent: "232,184,109",
-} as const;
-
 // Swatch tints run from the quietest cell (10%) to the busiest (65%).
 const LEGEND_TINTS = [0.1, 0.21, 0.32, 0.43, 0.54, 0.65];
 
@@ -25,7 +20,9 @@ export default function RangeMap({ run }: RangeMapProps) {
   const [focusIndex, setFocusIndex] = useState(0);
   const cellRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
-  const rgb = TINT_RGB[runTint(run)] ?? TINT_RGB.accent;
+  const tint = runTint(run) === "primary" ? "var(--primary)" : "var(--accent)";
+  const tintAt = (alpha: number) =>
+    `color-mix(in srgb, ${tint} ${Math.round(alpha * 100)}%, transparent)`;
   const ranges = run.ranges ?? [];
   const activeRange =
     activeIndex === null
@@ -90,7 +87,7 @@ export default function RangeMap({ run }: RangeMapProps) {
                   }}
                   className={`range-cell${isActive ? " range-cell--active" : ""}`}
                   style={{
-                    background: `rgba(${rgb},${cellAlpha(range.share)})`,
+                    background: tintAt(cellAlpha(range.share)),
                   }}
                   aria-label={`Range ${range.index + 1}: ${fmt(
                     range.pages
@@ -152,7 +149,7 @@ export default function RangeMap({ run }: RangeMapProps) {
             <span
               key={alpha}
               className="legend-swatch"
-              style={{ background: `rgba(${rgb},${alpha})` }}
+              style={{ background: tintAt(alpha) }}
               aria-hidden="true"
             />
           ))}

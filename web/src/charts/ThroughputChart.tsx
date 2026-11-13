@@ -1,11 +1,6 @@
 import { duration, fmt, runTint } from "../lib/format";
 import type { ChartRun } from "../types";
 
-const TINT_RGB = {
-  primary: "240,168,200",
-  accent: "232,184,109",
-} as const;
-
 // The configured pace, not a fixed reference: 6 req/s is 360 pages/min, but
 // the console allows 0.5–10 req/s.
 const BAR_ALPHA = 0.42;
@@ -23,7 +18,10 @@ export default function ThroughputChart({ run }: ThroughputChartProps) {
   const rate = Number(configured.rate);
   const reference = Number.isFinite(rate) && rate > 0 ? rate * 60 : null;
   const maxY = Math.max(peak, reference || 0) * 1.08;
-  const rgb = TINT_RGB[runTint(run)] ?? TINT_RGB.accent;
+  const tint = runTint(run) === "primary" ? "var(--primary)" : "var(--accent)";
+  const barColor = `color-mix(in srgb, ${tint} ${Math.round(
+    BAR_ALPHA * 100
+  )}%, transparent)`;
   const refBottom = reference ? (reference / maxY) * 100 : null;
   const rateLimited = run.rate_limited;
   const pagesInWorkdir = run.pages_in_workdir ?? run.pages;
@@ -70,7 +68,7 @@ export default function ThroughputChart({ run }: ThroughputChartProps) {
                 className="throughput-bar"
                 style={{
                   height: `${(point.pages / maxY) * 100}%`,
-                  background: `rgba(${rgb},${BAR_ALPHA})`,
+                  background: barColor,
                 }}
                 title={`minute ${point.minute}: ${fmt(point.pages)} pages`}
               />

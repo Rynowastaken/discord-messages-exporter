@@ -75,7 +75,9 @@ export default function PostingClock({ cells }: PostingClockProps) {
                       background:
                         count === 0
                           ? "rgba(255,255,255,.035)"
-                          : `rgba(240,168,200,${0.12 + ratio * 0.78})`,
+                          : `color-mix(in srgb, var(--primary) ${Math.round(
+                              (0.12 + ratio * 0.78) * 100
+                            )}%, transparent)`,
                     }}
                     title={`${WEEKDAYS[weekday]} ${String(hour).padStart(
                       2,

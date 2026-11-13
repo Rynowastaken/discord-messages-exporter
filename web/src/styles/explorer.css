@@ -106,8 +106,8 @@
 }
 
 .soft-button--danger:hover:not(:disabled) {
-  border-color: rgba(240, 113, 120, .45);
-  background: rgba(240, 113, 120, .08);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
 }
 
 .job-actions .soft-button,
@@ -450,7 +450,7 @@
 }
 
 .job-status[data-status="failed"] {
-  border-color: rgba(240, 113, 120, .4);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
   color: var(--danger-ink);
 }
 
@@ -1211,6 +1211,16 @@
   stroke-width: 1;
 }
 
+.activity-fill-start {
+  stop-color: var(--primary);
+  stop-opacity: .34;
+}
+
+.activity-fill-end {
+  stop-color: var(--primary);
+  stop-opacity: 0;
+}
+
 .activity-line {
   fill: none;
   stroke: var(--primary);
@@ -1688,7 +1698,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--danger);
-  box-shadow: 0 0 0 3px rgba(240, 113, 120, .1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
 .token-dot--on {

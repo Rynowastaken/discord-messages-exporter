@@ -22,8 +22,8 @@
   pointer-events: none;
   background-color: var(--canvas);
   background-image:
-    radial-gradient(ellipse 72% 48% at 12% -6%, rgba(240, 168, 200, .16), transparent 66%),
-    radial-gradient(ellipse 54% 44% at 88% 4%, rgba(232, 184, 109, .09), transparent 68%),
+    radial-gradient(ellipse 72% 48% at 12% -6%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 66%),
+    radial-gradient(ellipse 54% 44% at 88% 4%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 68%),
     linear-gradient(180deg, #17121b 0%, #100d13 58%, #09080a 100%);
   background-position: center;
   background-repeat: no-repeat;

@@ -1,6 +1,6 @@
 [package]
 name = "discord-messages-exporter-desktop"
-version = "0.1.4"
+version = "0.1.5"
 description = "Desktop shell for the Discord Messages Exporter console"
 authors = ["Rynowastaken"]
 edition = "2021"
