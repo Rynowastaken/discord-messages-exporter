@@ -90,6 +90,21 @@ class FakeDiscordClient {
     ]);
   }
 
+  search(
+    _guildId: string,
+    options: { channelId?: string | number | null } = {}
+  ) {
+    const channelId = options.channelId ? String(options.channelId) : "";
+    const totals: Record<string, number> = {
+      "101": 2,
+      "102": 3,
+    };
+    return Promise.resolve({
+      total_results: channelId ? totals[channelId] ?? 0 : 5,
+      messages: [],
+    });
+  }
+
   searchMembers(_guildId: string, _query: string, _limit = 25) {
     if (FakeDiscordClient.failMembers) {
       return Promise.reject(
@@ -578,6 +593,29 @@ describe("browse API", () => {
     assert.deepEqual(
       channels.map((channel) => channel.name),
       ["general", "random"]
+    );
+  });
+
+  test("info reports message counts for channels and servers", async () => {
+    const channel = await post("/api/info", {
+      mode: "channel",
+      channel: "101",
+    });
+    assert.equal(channel.status, 200);
+    assert.equal(
+      (channel.payload.info as { total_results: number }).total_results,
+      2
+    );
+
+    const server = await post("/api/info", {
+      mode: "server",
+      server: "g",
+    });
+    assert.equal(server.status, 200);
+    assert.equal(server.payload.channel_count, 2);
+    assert.equal(
+      (server.payload.info as { total_results: number }).total_results,
+      5
     );
   });
 

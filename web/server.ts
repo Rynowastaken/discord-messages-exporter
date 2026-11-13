@@ -1730,11 +1730,28 @@ async function handleBrowse(
   }
 }
 
+async function lookupMessageCount(
+  client: DiscordClient,
+  guildId: string,
+  channelId?: string
+): Promise<{ total_results: number | null } | null> {
+  if (!guildId) return null;
+  try {
+    const result = await client.search(guildId, {
+      channelId: channelId ?? null,
+      sortOrder: "desc",
+    });
+    return { total_results: result.total_results ?? null };
+  } catch (err) {
+    if (err instanceof DiscordError) return null;
+    throw err;
+  }
+}
+
 async function handleInfo(
   req: IncomingMessage,
   res: ServerResponse
-): Promise<void> {
-  const body = (await readJson(req)) as BrowserBody;
+): Promise<void> {  const body = (await readJson(req)) as BrowserBody;
   let mode = text(body.mode || "author").toLowerCase();
   if (!MODES.has(mode)) mode = "author";
   const channelId = text(body.channel);
@@ -1762,11 +1779,13 @@ async function handleInfo(
     if (mode === "server") {
       const guild = await client.guild(serverId);
       const channels = textChannels(await client.guildChannels(serverId));
+      const messageCount = await lookupMessageCount(client, serverId);
       sendJson(res, {
         mode,
         guild: { id: serverId, name: guild.name ?? null },
         channels,
         channel_count: channels.length,
+        info: messageCount,
       });
       return;
     }
@@ -1782,10 +1801,14 @@ async function handleInfo(
       }
     }
     if (mode === "channel") {
+      const info = guildId
+        ? await lookupMessageCount(client, guildId, channelId)
+        : null;
       sendJson(res, {
         mode,
         channel: { id: channelId, name: channel.name ?? null },
         guild: { id: guildId, name: guildName },
+        info,
       });
       return;
     }

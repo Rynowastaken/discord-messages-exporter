@@ -282,12 +282,7 @@ export default function ExportForm({
       : "Choose an author to continue.";
   }
 
-  const lookupLabel =
-    mode === "server"
-      ? "Check server"
-      : mode === "channel"
-        ? "Check channel"
-        : "Check message count";
+  const lookupLabel = "Check message count";
   const browseToken = serverToken ? undefined : sessionToken || undefined;
   const browseError = guildsError || channelsError || membersError;
   const serverOptions: SelectOption[] = guilds.map((guild) => ({
@@ -1303,12 +1298,34 @@ export default function ExportForm({
                   </span>
                 </>
               ) : mode === "server" ? (
+                lookup.info?.total_results !== null &&
+                lookup.info?.total_results !== undefined ? (
+                  <>
+                    <strong>{fmt(lookup.info.total_results)}</strong>
+                    <span>messages found</span>
+                    <span>
+                      {fmt(lookup.channel_count ?? lookup.channels?.length ?? 0)}{" "}
+                      text channels · {lookup.guild?.name ?? "Server ready"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <strong>
+                      {fmt(lookup.channel_count ?? lookup.channels?.length ?? 0)}
+                    </strong>
+                    <span>text channels</span>
+                    <span>{lookup.guild?.name ?? "Server ready"}</span>
+                  </>
+                )
+              ) : lookup.info?.total_results !== null &&
+                lookup.info?.total_results !== undefined ? (
                 <>
-                  <strong>
-                    {fmt(lookup.channel_count ?? lookup.channels?.length ?? 0)}
-                  </strong>
-                  <span>text channels</span>
-                  <span>{lookup.guild?.name ?? "Server ready"}</span>
+                  <strong>{fmt(lookup.info.total_results)}</strong>
+                  <span>messages found</span>
+                  <span>
+                    #{lookup.channel?.name ?? "channel"} ·{" "}
+                    {lookup.guild?.name ?? "Ready to export"}
+                  </span>
                 </>
               ) : (
                 <>
