@@ -196,6 +196,9 @@ function filtersQuery(
   if (filters.hour !== undefined) {
     params.set("hour", String(filters.hour));
   }
+  if (filters.content) {
+    params.set("content", filters.content);
+  }
   for (const [key, value] of Object.entries(extra)) {
     params.set(key, String(value));
   }

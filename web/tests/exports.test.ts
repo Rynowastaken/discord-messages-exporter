@@ -106,7 +106,7 @@ const SAMPLE = {
       channel_id: "202",
       timestamp: "2025-05-09T09:15:00+00:00",
       author: { id: "u1", username: "ryno", global_name: "Ryno" },
-      content: "another channel message",
+      content: "another channel ```x```",
       attachments: [],
       reactions: [],
       edited_timestamp: null,
@@ -290,6 +290,67 @@ describe("export library", () => {
     assert.equal(window?.total, 2);
     assert.equal(window?.messages[0].id, "1003");
 
+    const code = queryMessages(
+      "job-testjob",
+      { content: "code" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(code?.total, 1);
+    assert.equal(code?.messages[0].id, "1003");
+
+    const images = queryMessages(
+      "job-testjob",
+      { content: "images" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(images?.total, 1);
+    assert.equal(images?.messages[0].id, "1002");
+
+    const videos = queryMessages(
+      "job-testjob",
+      { content: "videos" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(videos?.total, 2);
+    assert.deepEqual(
+      videos?.messages.map((message) => message.id).sort(),
+      ["1001", "1004"]
+    );
+
+    const media = queryMessages(
+      "job-testjob",
+      { content: "media" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(media?.total, 3);
+
+    const files = queryMessages(
+      "job-testjob",
+      { content: "files" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(files?.total, 0);
+
+    const links = queryMessages(
+      "job-testjob",
+      { content: "links" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(links?.total, 1);
+    assert.equal(links?.messages[0].id, "1001");
+
     const detail = queryMessage("job-testjob", "1002");
     assert.ok(detail);
     assert.equal(detail.id, "1002");
@@ -304,6 +365,20 @@ describe("export library", () => {
     assert.ok(facets);
     assert.equal(facets.authors.length, 3);
     assert.equal(facets.channels.length, 2);
+    assert.deepEqual(
+      Object.fromEntries(facets.content.map((facet) => [facet.id, facet.count])),
+      {
+        text: 4,
+        media: 3,
+        images: 1,
+        videos: 2,
+        audio: 0,
+        files: 0,
+        code: 1,
+        links: 1,
+        stickers: 0,
+      }
+    );
 
     const stats = queryStats("job-testjob", {});
     assert.ok(stats);
@@ -360,6 +435,11 @@ describe("export library", () => {
     assert.deepEqual(withAttachment.attachment_types, [
       { type: "image/png", count: 1 },
     ]);
+
+    const imageStats = queryStats("job-testjob", { content: "images" });
+    assert.ok(imageStats);
+    assert.equal(imageStats.total, 1);
+    assert.equal(imageStats.attachments, 1);
   });
 
   test("imports, indexes, and removes a loaded file", async () => {

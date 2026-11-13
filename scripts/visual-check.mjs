@@ -173,7 +173,15 @@ const FIXTURE_MESSAGES = [
     },
     content: "Short reply.",
     mentions: [],
-    attachments: [],
+    attachments: [
+      {
+        id: "att-image",
+        filename: "screenshot.png",
+        size: 2048,
+        content_type: "image/png",
+        url: "https://cdn.discordapp.com/attachments/201/att-image/screenshot.png",
+      },
+    ],
     reference: { message_id: "9101" },
     referenced_message: {
       id: "9101",
@@ -204,6 +212,175 @@ const FIXTURE_MESSAGES = [
     ],
     reactions: [],
   },
+  {
+    id: "9107",
+    timestamp: "2026-10-24T07:15:00+00:00",
+    author: {
+      id: "551019276174229505",
+      username: "ryno",
+      global_name: "Ryno",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+    },
+    content: "Morning check-in: the new export finished cleanly.",
+    mentions: [],
+    attachments: [
+      {
+        id: "att-morning",
+        filename: "dashboard.png",
+        size: 4096,
+        content_type: "image/png",
+        url: "https://cdn.discordapp.com/attachments/201/att-morning/dashboard.png",
+      },
+    ],
+    reactions: [],
+  },
+  {
+    id: "9108",
+    timestamp: "2026-10-25T09:20:00+00:00",
+    author: {
+      id: "551019276174229506",
+      username: "mira",
+      global_name: "Mira",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/1.png",
+    },
+    content:
+      "The archive search is quick now — press / to jump straight to the search box.",
+    mentions: [],
+    attachments: [],
+    reactions: [{ emoji: { name: "✨" }, count: 2 }],
+  },
+  {
+    id: "9109",
+    timestamp: "2026-10-25T12:10:00+00:00",
+    author: {
+      id: "551019276174229507",
+      username: "nami",
+      global_name: "Nami",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/2.png",
+    },
+    content: "Voice note from the planning call.",
+    mentions: [],
+    attachments: [
+      {
+        id: "att-voice",
+        filename: "planning.ogg",
+        size: 10240,
+        content_type: "audio/ogg",
+        url: "https://cdn.discordapp.com/attachments/201/att-voice/planning.ogg",
+      },
+    ],
+    reactions: [],
+  },
+  {
+    id: "9110",
+    timestamp: "2026-10-25T21:05:00+00:00",
+    author: {
+      id: "551019276174229505",
+      username: "ryno",
+      global_name: "Ryno",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+    },
+    content: "Added the sticker set for the community.",
+    mentions: [],
+    attachments: [],
+    sticker_items: [{ id: "sticker-1", name: "nice", format_type: 1 }],
+    reactions: [],
+  },
+  {
+    id: "9111",
+    timestamp: "2026-10-26T14:05:00+00:00",
+    author: {
+      id: "551019276174229506",
+      username: "mira",
+      global_name: "Mira",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/1.png",
+    },
+    content: "Attaching the handout from today.",
+    mentions: [],
+    attachments: [
+      {
+        id: "att-handout",
+        filename: "handout.pdf",
+        size: 8192,
+        content_type: "application/pdf",
+        url: "https://cdn.discordapp.com/attachments/201/att-handout/handout.pdf",
+      },
+    ],
+    reactions: [],
+  },
+  {
+    id: "9112",
+    timestamp: "2026-10-27T10:45:00+00:00",
+    author: {
+      id: "551019276174229507",
+      username: "nami",
+      global_name: "Nami",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/2.png",
+    },
+    content: "Short clip from the meetup.",
+    mentions: [],
+    attachments: [
+      {
+        id: "att-clip",
+        filename: "meetup.mp4",
+        size: 16384,
+        content_type: "video/mp4",
+        url: "https://cdn.discordapp.com/attachments/201/att-clip/meetup.mp4",
+      },
+    ],
+    reactions: [{ emoji: { name: "🎬" }, count: 4 }],
+  },
+  {
+    id: "9113",
+    timestamp: "2026-10-27T19:45:00+00:00",
+    author: {
+      id: "551019276174229505",
+      username: "ryno",
+      global_name: "Ryno",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+    },
+    content: "That wrap-up post is now in #general too.",
+    mentions: [],
+    attachments: [],
+    reactions: [],
+  },
+  {
+    id: "9114",
+    timestamp: "2026-10-27T21:30:00+00:00",
+    author: {
+      id: "551019276174229506",
+      username: "mira",
+      global_name: "Mira",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/1.png",
+    },
+    content: "One more screenshot for the docs.",
+    mentions: [],
+    attachments: [
+      {
+        id: "att-docs",
+        filename: "docs.png",
+        size: 4096,
+        content_type: "image/png",
+        url: "https://cdn.discordapp.com/attachments/201/att-docs/docs.png",
+      },
+    ],
+    reactions: [],
+  },
+  {
+    id: "9115",
+    timestamp: "2026-10-28T19:15:00+00:00",
+    author: {
+      id: "551019276174229507",
+      username: "nami",
+      global_name: "Nami",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/2.png",
+    },
+    content:
+      "Thanks everyone for the feedback — the next release is looking good.",
+    mentions: [],
+    attachments: [],
+    reactions: [{ emoji: { name: "❤️" }, count: 5 }],
+  },
 ].map((message) => ({
   channel_id: "201",
   channel_name: "general",
@@ -225,7 +402,7 @@ async function createFixture(exportsDir, runsDir) {
   const document = {
     export_metadata: {
       mode: "author",
-      guild: { id: "100", name: "Visual Check" },
+      guild: { id: "100", name: "Ryno Community" },
       channel: { id: "201", name: "general" },
       target_user_id: "551019276174229505",
       target_username: "ryno",
@@ -958,6 +1135,29 @@ async function main() {
             `Boolean(document.querySelector(".picker-menu[data-state='open']"))`
           );
         },
+      },
+      {
+        name: "messages-content-code-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.clickText("Any content");
+          await page.waitFor(
+            `Boolean(document.querySelector(".picker-menu[data-state='open']"))`
+          );
+          const chosen = await page.evaluate(`(() => {
+            const option = [...document.querySelectorAll(".picker-option")]
+              .find((item) => (item.innerText || "").trim().startsWith("Code blocks"));
+            option?.click();
+            return Boolean(option);
+          })()`);
+          if (!chosen) throw new Error("content filter option not found");
+          await page.waitFor(
+            `document.querySelectorAll(".message-row").length === 1`
+          );
+        },
+        expect: `document.querySelector(".message-row")?.innerText.includes("const ready") ?? false`,
       },
       {
         name: "insights-desktop",

@@ -432,9 +432,26 @@ export interface FacetValue {
   count: number;
 }
 
+export type MessageContentKind =
+  | "text"
+  | "media"
+  | "images"
+  | "videos"
+  | "audio"
+  | "files"
+  | "code"
+  | "links"
+  | "stickers";
+
+export interface ContentFacet {
+  id: MessageContentKind;
+  count: number;
+}
+
 export interface ExportFacets {
   authors: FacetValue[];
   channels: FacetValue[];
+  content: ContentFacet[];
   first_timestamp: string | null;
   last_timestamp: string | null;
 }
@@ -552,6 +569,7 @@ export interface ExportFilters {
   to?: string;
   weekday?: number;
   hour?: number;
+  content?: MessageContentKind;
 }
 
 export interface ExportsResponse {

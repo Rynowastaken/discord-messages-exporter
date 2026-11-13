@@ -35,6 +35,7 @@ import type {
   ExplorerEmbed,
   ExportDetailResponse,
   ExportFilters,
+  MessageContentKind,
   MessagePage,
 } from "../types";
 
@@ -104,6 +105,18 @@ interface RawMessage {
 }
 
 const PAGE_SIZE = 100;
+
+const CONTENT_LABELS: Array<{ id: MessageContentKind; label: string }> = [
+  { id: "text", label: "Text" },
+  { id: "media", label: "Media" },
+  { id: "images", label: "Images" },
+  { id: "videos", label: "Videos" },
+  { id: "audio", label: "Audio" },
+  { id: "files", label: "Files" },
+  { id: "code", label: "Code blocks" },
+  { id: "links", label: "Links" },
+  { id: "stickers", label: "Stickers" },
+];
 
 function detailMentions(
   mentions: RawMessage["mentions"]
@@ -268,6 +281,7 @@ export default function MessagesPage({
           channel: filters.channel,
           from: filters.from,
           to: filters.to,
+          content: filters.content,
         })
         .then((data) => {
           if (!cancelled) setClockCells(data.stats.clock);
@@ -288,6 +302,7 @@ export default function MessagesPage({
     filters.channel,
     filters.from,
     filters.to,
+    filters.content,
   ]);
 
   useEffect(() => {
@@ -499,6 +514,18 @@ export default function MessagesPage({
   ];
   const serverScope =
     item.metadata?.mode === "server" || (facets?.channels.length ?? 0) > 1;
+  const contentCounts = new Map(
+    (facets?.content ?? []).map((facet) => [facet.id, facet.count])
+  );
+  const contentOptions = [
+    { value: "", label: "Any content" },
+    ...CONTENT_LABELS.filter(
+      (entry) => (contentCounts.get(entry.id) ?? 0) > 0
+    ).map((entry) => ({
+      value: entry.id,
+      label: `${entry.label} · ${fmt(contentCounts.get(entry.id) ?? 0)}`,
+    })),
+  ];
   const total = page?.total ?? 0;
   const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -508,6 +535,7 @@ export default function MessagesPage({
       filters.channel ||
       filters.from ||
       filters.to ||
+      filters.content ||
       filters.weekday !== undefined ||
       filters.hour !== undefined
   );
@@ -571,6 +599,17 @@ export default function MessagesPage({
             onChange={(value) => changeFilter({ channel: value })}
           />
         ) : null}
+        <SelectMenu
+          id="contentFilter"
+          label="Content"
+          value={filters.content ?? ""}
+          options={contentOptions}
+          onChange={(value) =>
+            changeFilter({
+              content: value ? (value as MessageContentKind) : undefined,
+            })
+          }
+        />
         <label className="field filter-date">
           <span className="field-label">From</span>
           <input

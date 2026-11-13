@@ -63,6 +63,7 @@ import {
   reindexExport,
   removeImport,
   type ExportFilters,
+  type MessageContentKind,
 } from "./exports.js";
 import {
   DiscordClient,
@@ -1839,6 +1840,18 @@ function exportFilters(search: URLSearchParams): ExportFilters {
   const hourRaw = search.get("hour");
   const weekday = Number.parseInt(weekdayRaw ?? "", 10);
   const hour = Number.parseInt(hourRaw ?? "", 10);
+  const contentRaw = (search.get("content") ?? "").trim();
+  const contentKinds: MessageContentKind[] = [
+    "text",
+    "media",
+    "images",
+    "videos",
+    "audio",
+    "files",
+    "code",
+    "links",
+    "stickers",
+  ];
   return {
     q: (search.get("q") ?? "").trim(),
     author: (search.get("author") ?? "").trim(),
@@ -1853,6 +1866,9 @@ function exportFilters(search: URLSearchParams): ExportFilters {
       hourRaw !== null && Number.isInteger(hour) && hour >= 0 && hour <= 23
         ? hour
         : undefined,
+    content: contentKinds.includes(contentRaw as MessageContentKind)
+      ? (contentRaw as MessageContentKind)
+      : undefined,
   };
 }
 

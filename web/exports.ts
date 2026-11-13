@@ -79,9 +79,26 @@ export interface FacetValue {
   count: number;
 }
 
+export type MessageContentKind =
+  | "text"
+  | "media"
+  | "images"
+  | "videos"
+  | "audio"
+  | "files"
+  | "code"
+  | "links"
+  | "stickers";
+
+export interface ContentFacet {
+  id: MessageContentKind;
+  count: number;
+}
+
 export interface ExportFacets {
   authors: FacetValue[];
   channels: FacetValue[];
+  content: ContentFacet[];
   first_timestamp: string | null;
   last_timestamp: string | null;
 }
@@ -141,6 +158,7 @@ export interface ExportFilters {
   to?: string;
   weekday?: number;
   hour?: number;
+  content?: MessageContentKind;
 }
 
 export interface ExportStats {
@@ -196,7 +214,7 @@ export interface ExportStats {
   length_buckets: Array<{ label: string; count: number }>;
 }
 
-const INDEX_SCHEMA = 5;
+const INDEX_SCHEMA = 6;
 
 interface IndexMeta {
   schema_version: number;
@@ -792,6 +810,22 @@ function domainsIn(content: string): string[] {
   return [...domains];
 }
 
+function embedMediaUrl(
+  embed: Record<string, unknown>,
+  key: "image" | "video"
+): string | null {
+  const media = embed[key];
+  if (!media || typeof media !== "object") return null;
+  return httpUrl((media as Record<string, unknown>).url);
+}
+
+function attachmentKind(type: string): "image" | "video" | "audio" | "file" {
+  if (/^image\//i.test(type)) return "image";
+  if (/^video\//i.test(type)) return "video";
+  if (/^audio\//i.test(type)) return "audio";
+  return "file";
+}
+
 function normalizeMessage(
   message: Record<string, unknown>,
   index: number,
@@ -811,6 +845,14 @@ function normalizeMessage(
   reactionCount: number;
   replyToId: string;
   edited: number;
+  hasText: number;
+  hasImage: number;
+  hasVideo: number;
+  hasAudio: number;
+  hasFile: number;
+  hasCode: number;
+  hasLink: number;
+  hasSticker: number;
   raw: string;
   attachments: Array<{ id: string; type: string }>;
   reactions: Array<{ emoji: string; emojiId: string; count: number }>;
@@ -830,6 +872,12 @@ function normalizeMessage(
   const attachments = Array.isArray(message.attachments)
     ? (message.attachments as Array<Record<string, unknown>>)
     : [];
+  const embeds = Array.isArray(message.embeds)
+    ? (message.embeds as Array<Record<string, unknown>>)
+    : [];
+  const stickers = Array.isArray(message.sticker_items)
+    ? message.sticker_items
+    : [];
   const reactions = Array.isArray(message.reactions)
     ? (message.reactions as Array<Record<string, unknown>>)
     : [];
@@ -845,6 +893,26 @@ function normalizeMessage(
     sqlValue(reference.message_id) ||
     sqlValue(referenced.id);
   const content = sqlValue(message.content);
+  const links = domainsIn(content);
+  const attachmentKinds = attachments.map((attachment) =>
+    attachmentKind(sqlValue(attachment.content_type))
+  );
+  const hasImage =
+    attachmentKinds.includes("image") ||
+    embeds.some(
+      (embed) =>
+        Boolean(embedMediaUrl(embed, "image")) ||
+        sqlValue(embed.type).toLowerCase() === "image"
+    );
+  const hasVideo =
+    attachmentKinds.includes("video") ||
+    embeds.some(
+      (embed) =>
+        Boolean(embedMediaUrl(embed, "video")) ||
+        ["video", "gifv"].includes(sqlValue(embed.type).toLowerCase())
+    );
+  const hasLink =
+    links.length > 0 || embeds.some((embed) => Boolean(httpUrl(embed.url)));
   const reactionCounts = new Map<
     string,
     { emoji: string; emojiId: string; count: number }
@@ -889,13 +957,21 @@ function normalizeMessage(
     ),
     replyToId,
     edited: message.edited_timestamp ? 1 : 0,
+    hasText: content.trim() ? 1 : 0,
+    hasImage: hasImage ? 1 : 0,
+    hasVideo: hasVideo ? 1 : 0,
+    hasAudio: attachmentKinds.includes("audio") ? 1 : 0,
+    hasFile: attachmentKinds.includes("file") ? 1 : 0,
+    hasCode: content.includes("```") ? 1 : 0,
+    hasLink: hasLink ? 1 : 0,
+    hasSticker: stickers.length ? 1 : 0,
     raw: JSON.stringify(message),
     attachments: attachments.map((attachment, attachmentIndex) => ({
       id: sqlValue(attachment.id) || `attachment-${attachmentIndex}`,
       type: sqlValue(attachment.content_type) || "unknown",
     })),
     reactions: [...reactionCounts.values()],
-    links: domainsIn(content),
+    links,
     words: wordsIn(content),
   };
 }
@@ -945,6 +1021,14 @@ export async function buildIndex(
         reaction_count INTEGER NOT NULL DEFAULT 0,
         reply_to_id TEXT,
         edited INTEGER NOT NULL DEFAULT 0,
+        has_text INTEGER NOT NULL DEFAULT 0,
+        has_image INTEGER NOT NULL DEFAULT 0,
+        has_video INTEGER NOT NULL DEFAULT 0,
+        has_audio INTEGER NOT NULL DEFAULT 0,
+        has_file INTEGER NOT NULL DEFAULT 0,
+        has_code INTEGER NOT NULL DEFAULT 0,
+        has_link INTEGER NOT NULL DEFAULT 0,
+        has_sticker INTEGER NOT NULL DEFAULT 0,
         raw TEXT NOT NULL
       );
       CREATE INDEX messages_time ON messages(timestamp, id);
@@ -990,8 +1074,9 @@ export async function buildIndex(
       INSERT OR REPLACE INTO messages
         (id, timestamp, author_id, author_name, author_global_name,
          author_bot, channel_id, channel_name, content, attachment_count,
-         reaction_count, reply_to_id, edited, raw)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         reaction_count, reply_to_id, edited, has_text, has_image, has_video,
+         has_audio, has_file, has_code, has_link, has_sticker, raw)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const insertAttachment = db.prepare(
       "INSERT OR IGNORE INTO attachments (message_id, attachment_id, content_type) VALUES (?, ?, ?)"
@@ -1041,6 +1126,14 @@ export async function buildIndex(
           normalized.reactionCount,
           normalized.replyToId,
           normalized.edited,
+          normalized.hasText,
+          normalized.hasImage,
+          normalized.hasVideo,
+          normalized.hasAudio,
+          normalized.hasFile,
+          normalized.hasCode,
+          normalized.hasLink,
+          normalized.hasSticker,
           normalized.raw
         );
         for (const attachment of normalized.attachments) {
@@ -1172,6 +1265,20 @@ interface SqlFilter {
   params: Array<string | number>;
 }
 
+const CONTENT_CLAUSES: Record<MessageContentKind, string> = {
+  text: "m.has_text = 1",
+  media: "(m.has_image = 1 OR m.has_video = 1)",
+  images: "m.has_image = 1",
+  videos: "m.has_video = 1",
+  audio: "m.has_audio = 1",
+  files: "m.has_file = 1",
+  code: "m.has_code = 1",
+  links: "m.has_link = 1",
+  stickers: "m.has_sticker = 1",
+};
+
+const CONTENT_KINDS = Object.keys(CONTENT_CLAUSES) as MessageContentKind[];
+
 function buildFilter(
   filters: ExportFilters,
   includeSearch = true
@@ -1214,6 +1321,9 @@ function buildFilter(
     clauses.push("CAST(strftime('%H', m.timestamp) AS INTEGER) = ?");
     params.push(filters.hour);
   }
+  if (filters.content && CONTENT_CLAUSES[filters.content]) {
+    clauses.push(CONTENT_CLAUSES[filters.content]);
+  }
   return {
     from,
     where: clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "",
@@ -1229,7 +1339,8 @@ function hasFilters(filters: ExportFilters): boolean {
       filters.from ||
       filters.to ||
       filters.weekday !== undefined ||
-      filters.hour !== undefined
+      filters.hour !== undefined ||
+      filters.content
   );
 }
 
@@ -1488,6 +1599,20 @@ export function queryFacets(id: string): ExportFacets | null {
       .get(...filter.params) as
       | { first?: string; last?: string }
       | undefined;
+    const contentCounts = db
+      .prepare(
+        `SELECT SUM(m.has_text) AS text,
+                SUM(CASE WHEN m.has_image = 1 OR m.has_video = 1 THEN 1 ELSE 0 END) AS media,
+                SUM(m.has_image) AS images,
+                SUM(m.has_video) AS videos,
+                SUM(m.has_audio) AS audio,
+                SUM(m.has_file) AS files,
+                SUM(m.has_code) AS code,
+                SUM(m.has_link) AS links,
+                SUM(m.has_sticker) AS stickers
+         FROM ${filter.from}${filter.where}`
+      )
+      .get(...filter.params) as Record<string, unknown> | undefined;
     return {
       authors: facetQuery(db, "author", filter.from, filter.where, filter.params),
       channels: facetQuery(
@@ -1497,6 +1622,10 @@ export function queryFacets(id: string): ExportFacets | null {
         filter.where,
         filter.params
       ),
+      content: CONTENT_KINDS.map((kind) => ({
+        id: kind,
+        count: asNumber(contentCounts?.[kind]),
+      })),
       first_timestamp: bounds?.first ?? null,
       last_timestamp: bounds?.last ?? null,
     };

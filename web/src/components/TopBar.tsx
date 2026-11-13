@@ -75,8 +75,7 @@ export default function TopBar({
           <Archive size={20} strokeWidth={1.5} />
         </span>
         <span className="identity-copy">
-          <span className="identity-eyebrow">discord-messages-exporter</span>
-          <span className="identity-name">Archive Console</span>
+          <span className="identity-name">Message Exporter</span>
         </span>
       </a>
 
