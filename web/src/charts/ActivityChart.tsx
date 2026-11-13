@@ -63,7 +63,9 @@ export default function ActivityChart({ days }: ActivityChartProps) {
   const width = 720;
   const height = 190;
   const pad = 8;
-  const max = Math.max(1, ...buckets.map((bucket) => bucket.count));
+  const counts = buckets.map((bucket) => bucket.count);
+  const flat = new Set(counts).size === 1;
+  const max = Math.max(1, ...counts) + (flat ? 1 : 0);
   const step = buckets.length > 1 ? width / (buckets.length - 1) : width;
   const points = buckets.map((bucket, index) => ({
     x: buckets.length > 1 ? index * step : width / 2,
@@ -131,7 +133,7 @@ export default function ActivityChart({ days }: ActivityChartProps) {
             y2={height - pad}
             className="activity-axis"
           />
-          <path d={area} fill="url(#activityFill)" />
+          {flat ? null : <path d={area} fill="url(#activityFill)" />}
           <path d={line} className="activity-line" />
           {buckets.length <= 60
             ? points.map((point) => (

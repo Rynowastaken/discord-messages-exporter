@@ -19,6 +19,7 @@ import {
 import AttachmentGrid from "../components/AttachmentGrid";
 import Avatar from "../components/Avatar";
 import ExportHeader from "../components/ExportHeader";
+import MessageEmbeds from "../components/MessageEmbeds";
 import MessageMarkdown from "../components/MessageMarkdown";
 import SelectMenu from "../components/SelectMenu";
 import { api } from "../api";
@@ -29,6 +30,7 @@ import {
 } from "../lib/exportView";
 import { compact, fmt } from "../lib/format";
 import type {
+  ExplorerEmbed,
   ExportDetailResponse,
   ExportFilters,
   MessagePage,
@@ -60,14 +62,27 @@ interface RawMessage {
     id?: string;
     username?: string;
     global_name?: string | null;
+    avatar_url?: string | null;
     bot?: boolean;
   };
+  mentions?: Array<{
+    id?: string;
+    username?: string;
+    global_name?: string | null;
+    display_name?: string | null;
+    avatar_url?: string | null;
+  }>;
   attachments?: RawAttachment[];
   embeds?: Array<{
     title?: string;
     description?: string;
     url?: string;
     type?: string;
+    provider?: { name?: string };
+    author?: { name?: string };
+    thumbnail?: { url?: string };
+    image?: { url?: string };
+    video?: { url?: string };
   }>;
   reactions?: Array<{
     emoji?: string | { name?: string | null; id?: string | null } | null;
@@ -88,16 +103,37 @@ interface RawMessage {
 
 const PAGE_SIZE = 100;
 
-function safeHref(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? value
-      : undefined;
-  } catch {
-    return undefined;
-  }
+function detailMentions(
+  mentions: RawMessage["mentions"]
+): Array<{ id: string; name: string; avatar_url: string | null }> {
+  return (mentions ?? [])
+    .map((mention) => ({
+      id: mention.id ?? "",
+      name:
+        mention.global_name ||
+        mention.username ||
+        mention.display_name ||
+        mention.id ||
+        "",
+      avatar_url: mention.avatar_url ?? null,
+    }))
+    .filter((mention) => mention.id);
+}
+
+function detailEmbeds(
+  embeds: RawMessage["embeds"]
+): ExplorerEmbed[] {
+  return (embeds ?? []).map((embed) => ({
+    type: embed.type ?? null,
+    title: embed.title ?? null,
+    description: embed.description ?? null,
+    url: embed.url ?? null,
+    provider: embed.provider?.name ?? null,
+    author: embed.author?.name ?? null,
+    thumbnail_url: embed.thumbnail?.url ?? null,
+    image_url: embed.image?.url ?? null,
+    video_url: embed.video?.url ?? null,
+  }));
 }
 
 function ReactionGlyph({
@@ -555,6 +591,7 @@ export default function MessagesPage({
                   aria-pressed={selectedId === message.id}
                 >
                   <Avatar
+                    src={message.author_avatar_url}
                     name={authorLabel(message)}
                     round
                   />
@@ -576,6 +613,7 @@ export default function MessagesPage({
                     {message.content ? (
                       <MessageMarkdown
                         content={message.content}
+                        mentions={message.mentions}
                         className="message-content"
                       />
                     ) : (
@@ -583,6 +621,9 @@ export default function MessagesPage({
                         no text content
                       </span>
                     )}
+                    {message.embeds?.length ? (
+                      <MessageEmbeds embeds={message.embeds} />
+                    ) : null}
                     <div className="message-row-foot">
                       {message.attachment_count ? (
                         <span>
@@ -689,6 +730,7 @@ export default function MessagesPage({
               <>
                 <div className="message-detail-head">
                   <Avatar
+                    src={selected.author?.avatar_url}
                     name={
                       selected.author?.global_name ||
                       selected.author?.username ||
@@ -728,6 +770,7 @@ export default function MessagesPage({
                 {selected.content ? (
                   <MessageMarkdown
                     content={selected.content}
+                    mentions={detailMentions(selected.mentions)}
                     className="message-detail-content"
                   />
                 ) : (
@@ -735,6 +778,27 @@ export default function MessagesPage({
                     no text content
                   </p>
                 )}
+
+                {selected.mentions?.length ? (
+                  <div className="message-detail-block">
+                    <h3>Mentioned</h3>
+                    <div className="message-mentions">
+                      {detailMentions(selected.mentions).map((mention) => (
+                        <span
+                          className="message-mention"
+                          key={mention.id}
+                        >
+                          <Avatar
+                            src={mention.avatar_url}
+                            name={mention.name}
+                            round
+                          />
+                          {mention.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {selected.attachments?.length ? (
                   <div className="message-detail-block">
@@ -797,31 +861,12 @@ export default function MessagesPage({
 
                 {selected.embeds?.length ? (
                   <div className="message-detail-block">
-                    <h3>Embeds</h3>
-                    <ul className="embed-list">
-                      {selected.embeds.map((embed, index) => {
-                        const href = safeHref(embed.url);
-                        return (
-                          <li key={index}>
-                            {href ? (
-                              <a href={href} target="_blank" rel="noreferrer">
-                                {embed.title || embed.url}
-                              </a>
-                            ) : (
-                              <strong>
-                                {embed.title || embed.type || "embed"}
-                              </strong>
-                            )}
-                            {embed.description ? (
-                              <MessageMarkdown
-                                content={embed.description}
-                                className="embed-content"
-                              />
-                            ) : null}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <h3>Link previews</h3>
+                    <MessageEmbeds
+                      embeds={detailEmbeds(selected.embeds)}
+                      limit={4}
+                      className="message-embeds--detail"
+                    />
                   </div>
                 ) : null}
 

@@ -4,6 +4,13 @@ import type { ReactNode } from "react";
 interface MessageMarkdownProps {
   content: string;
   className?: string;
+  mentions?: MentionUser[];
+}
+
+export interface MentionUser {
+  id: string;
+  name?: string | null;
+  avatar_url?: string | null;
 }
 
 const FENCE = /^\s*```(.*)$/;
@@ -86,7 +93,11 @@ function timestampLabel(raw: string): string {
   }).format(date);
 }
 
-function renderInline(text: string, prefix: string): ReactNode[] {
+function renderInline(
+  text: string,
+  prefix: string,
+  mentions: Map<string, MentionUser> = new Map()
+): ReactNode[] {
   const nodes: ReactNode[] = [];
   let buffer = "";
   let index = 0;
@@ -136,7 +147,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
       if (end > index + 2) {
         push(
           <strong key={`${prefix}-strong-${index}`}>
-            {renderInline(text.slice(index + 2, end), `${prefix}-b-${index}`)}
+            {renderInline(text.slice(index + 2, end), `${prefix}-b-${index}`, mentions)}
           </strong>
         );
         index = end + 2;
@@ -149,7 +160,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
       if (end > index + 2) {
         push(
           <u key={`${prefix}-underline-${index}`}>
-            {renderInline(text.slice(index + 2, end), `${prefix}-u-${index}`)}
+            {renderInline(text.slice(index + 2, end), `${prefix}-u-${index}`, mentions)}
           </u>
         );
         index = end + 2;
@@ -162,7 +173,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
       if (end > index + 2) {
         push(
           <s key={`${prefix}-strike-${index}`}>
-            {renderInline(text.slice(index + 2, end), `${prefix}-s-${index}`)}
+            {renderInline(text.slice(index + 2, end), `${prefix}-s-${index}`, mentions)}
           </s>
         );
         index = end + 2;
@@ -175,7 +186,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
       if (end > index + 2) {
         push(
           <Spoiler key={`${prefix}-spoiler-${index}`}>
-            {renderInline(text.slice(index + 2, end), `${prefix}-sp-${index}`)}
+            {renderInline(text.slice(index + 2, end), `${prefix}-sp-${index}`, mentions)}
           </Spoiler>
         );
         index = end + 2;
@@ -192,7 +203,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
       if (end > index + 1) {
         push(
           <em key={`${prefix}-em-${index}`}>
-            {renderInline(text.slice(index + 1, end), `${prefix}-e-${index}`)}
+            {renderInline(text.slice(index + 1, end), `${prefix}-e-${index}`, mentions)}
           </em>
         );
         index = end + 1;
@@ -231,7 +242,7 @@ function renderInline(text: string, prefix: string): ReactNode[] {
               target="_blank"
               rel="noreferrer"
             >
-              {renderInline(label, `${prefix}-l-${index}`)}
+              {renderInline(label, `${prefix}-l-${index}`, mentions)}
             </a>
           );
           index = end + 1;
@@ -264,13 +275,14 @@ function renderInline(text: string, prefix: string): ReactNode[] {
         }
         const user = token.match(/^@!?(\d+)$/);
         if (user) {
+          const mention = mentions.get(user[1]);
           push(
             <span
               className="md-mention"
               key={`${prefix}-user-${index}`}
-              title={`User ${user[1]}`}
+              title={mention?.name || `User ${user[1]}`}
             >
-              @user
+              @{mention?.name || "user"}
             </span>
           );
           index = end + 1;
@@ -378,7 +390,10 @@ function isBlockStart(line: string): boolean {
   );
 }
 
-function renderBlocks(content: string): ReactNode[] {
+function renderBlocks(
+  content: string,
+  mentions: Map<string, MentionUser> = new Map()
+): ReactNode[] {
   const lines = content.replace(/\r\n?/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   let index = 0;
@@ -427,7 +442,7 @@ function renderBlocks(content: string): ReactNode[] {
         <blockquote key={`quote-${key++}`}>
           {quoteLines.map((value, lineIndex) => (
             <p key={`quote-${lineIndex}`}>
-              {renderInline(value, `q-${key}-${lineIndex}`)}
+              {renderInline(value, `q-${key}-${lineIndex}`, mentions)}
             </p>
           ))}
         </blockquote>
@@ -444,7 +459,7 @@ function renderBlocks(content: string): ReactNode[] {
         | "h5";
       blocks.push(
         <HeadingTag className="md-heading" key={`heading-${key++}`}>
-          {renderInline(heading[2], `h-${key}`)}
+          {renderInline(heading[2], `h-${key}`, mentions)}
         </HeadingTag>
       );
       index += 1;
@@ -467,7 +482,7 @@ function renderBlocks(content: string): ReactNode[] {
         <ListTag key={`list-${key++}`}>
           {items.map((item, itemIndex) => (
             <li key={`item-${itemIndex}`}>
-              {renderInline(item, `li-${key}-${itemIndex}`)}
+              {renderInline(item, `li-${key}-${itemIndex}`, mentions)}
             </li>
           ))}
         </ListTag>
@@ -486,7 +501,7 @@ function renderBlocks(content: string): ReactNode[] {
     }
     blocks.push(
       <p key={`paragraph-${key++}`}>
-        {renderInline(paragraph.join("\n"), `p-${key}`)}
+        {renderInline(paragraph.join("\n"), `p-${key}`, mentions)}
       </p>
     );
   }
@@ -501,11 +516,15 @@ function renderBlocks(content: string): ReactNode[] {
 export default function MessageMarkdown({
   content,
   className = "",
+  mentions = [],
 }: MessageMarkdownProps) {
   if (!content.trim()) return null;
+  const mentionMap = new Map(
+    mentions.map((mention) => [mention.id, mention])
+  );
   return (
     <div className={`message-markdown${className ? ` ${className}` : ""}`}>
-      {renderBlocks(content)}
+      {renderBlocks(content, mentionMap)}
     </div>
   );
 }

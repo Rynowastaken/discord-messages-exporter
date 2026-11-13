@@ -118,7 +118,8 @@ describe("slimMessage", () => {
     id: "123",
     channel_id: "456",
     timestamp: "2025-05-08T00:00:00+00:00",
-    author: { id: "9", username: "someone", bot: false },
+    author: { id: "9", username: "someone", bot: false, avatar: "abc" },
+    mentions: [{ id: "10", username: "mentioned", avatar: "def" }],
     content: "hello",
     attachments: [
       {
@@ -162,6 +163,19 @@ describe("slimMessage", () => {
     const record = slimMessage(raw);
     assert.equal(record.reactions[0]?.emoji, "ok");
     assert.deepEqual(record.thread, { id: "t1", name: "thread" });
+  });
+
+  test("author and mentioned users carry avatar URLs", () => {
+    const record = slimMessage(raw);
+    assert.equal(
+      record.author?.avatar_url,
+      "https://cdn.discordapp.com/avatars/9/abc.png?size=128"
+    );
+    assert.equal(record.mentions[0]?.id, "10");
+    assert.equal(
+      record.mentions[0]?.avatar_url,
+      "https://cdn.discordapp.com/avatars/10/def.png?size=128"
+    );
   });
 });
 

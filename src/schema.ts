@@ -27,6 +27,7 @@ export interface SlimUser {
   global_name?: string | null;
   display_name?: string | null;
   bot?: boolean;
+  avatar_url?: string | null;
 }
 
 export type SlimAttachment = Record<
@@ -43,6 +44,7 @@ export interface SlimMessage {
   pinned: boolean | undefined;
   content: string | undefined;
   author: SlimUser | null;
+  mentions: SlimUser[];
   attachments: SlimAttachment[];
   embeds: unknown[];
   sticker_items: Array<{
@@ -65,6 +67,19 @@ export interface SlimMessage {
   flags: number | undefined;
 }
 
+function avatarUrl(user: DiscordUser): string | null {
+  if (user.avatar) {
+    const extension = user.avatar.startsWith("a_") ? "gif" : "png";
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${extension}?size=128`;
+  }
+  try {
+    const index = Number((BigInt(user.id) >> 22n) % 6n);
+    return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+  } catch {
+    return null;
+  }
+}
+
 export function slimUser(user?: DiscordUser | null): SlimUser | null {
   if (!user) return null;
   return {
@@ -74,6 +89,7 @@ export function slimUser(user?: DiscordUser | null): SlimUser | null {
     display_name:
       (user as DiscordUser & { display_name?: string | null }).display_name,
     bot: user.bot ?? false,
+    avatar_url: avatarUrl(user),
   };
 }
 
@@ -102,6 +118,9 @@ export function slimMessage(
     pinned: message.pinned,
     content: message.content,
     author: slimUser(message.author),
+    mentions: (message.mentions ?? [])
+      .map((user) => slimUser(user))
+      .filter((user): user is SlimUser => Boolean(user)),
     attachments: includeAttachments
       ? (message.attachments ?? []).map(slimAttachment)
       : [],

@@ -2068,16 +2068,16 @@
 .appearance-background-preview.is-empty {
   background-image:
     radial-gradient(
-      ellipse 90% 140% at 16% -10%,
-      color-mix(in srgb, var(--primary) 58%, transparent),
+      ellipse 90% 150% at 14% -15%,
+      color-mix(in srgb, var(--primary) 70%, transparent),
       transparent 64%
     ),
     radial-gradient(
-      ellipse 80% 110% at 94% 4%,
-      color-mix(in srgb, var(--accent) 40%, transparent),
-      transparent 70%
+      ellipse 80% 120% at 92% -5%,
+      color-mix(in srgb, var(--accent) 55%, transparent),
+      transparent 68%
     ),
-    linear-gradient(180deg, #1f1824, #0c0a0e);
+    linear-gradient(180deg, #241a2b, #0c0a0e);
 }
 
 .appearance-background-badge {

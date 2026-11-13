@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
@@ -15,6 +16,7 @@ import {
   ensureIndexed,
   finalizeImport,
   getExport,
+  hideJobExport,
   prepareImport,
   queryFacets,
   queryMessage,
@@ -40,14 +42,40 @@ const SAMPLE = {
       id: "1001",
       channel_id: "201",
       timestamp: "2025-05-08T10:00:00+00:00",
-      author: { id: "u1", username: "ryno", global_name: "Ryno" },
+      author: {
+        id: "u1",
+        username: "ryno",
+        global_name: "Ryno",
+        avatar: "abc123",
+        avatar_url:
+          "https://cdn.discordapp.com/avatars/u1/abc123.png?size=128",
+      },
       content: "hello world",
       attachments: [],
       reactions: [],
       edited_timestamp: null,
       message_reference: null,
       referenced_message: null,
-      embeds: [],
+      embeds: [
+        {
+          type: "video",
+          title: "A test video",
+          description: "A description of the video.",
+          url: "https://example.com/watch?v=1",
+          provider: { name: "Example" },
+          thumbnail: { url: "https://example.com/thumb.jpg" },
+        },
+      ],
+      mentions: [
+        {
+          id: "u2",
+          username: "botty",
+          global_name: "Botty",
+          avatar: "def456",
+          avatar_url:
+            "https://cdn.discordapp.com/avatars/u2/def456.png?size=128",
+        },
+      ],
       sticker_items: [],
       thread: null,
     },
@@ -180,6 +208,28 @@ describe("export library", () => {
     assert.equal(first.messages.length, 2);
     assert.equal(first.messages[0].id, "1004");
     assert.equal(first.has_more, true);
+
+    const oldest = queryMessages(
+      "job-testjob",
+      {},
+      0,
+      1,
+      "asc"
+    );
+    assert.ok(oldest);
+    assert.equal(oldest.messages[0].embeds.length, 1);
+    assert.equal(oldest.messages[0].embeds[0].title, "A test video");
+    assert.equal(oldest.messages[0].embeds[0].provider, "Example");
+    assert.equal(
+      oldest.messages[0].embeds[0].thumbnail_url,
+      "https://example.com/thumb.jpg"
+    );
+    assert.equal(oldest.messages[0].author_avatar_url, "https://cdn.discordapp.com/avatars/u1/abc123.png?size=128");
+    assert.equal(oldest.messages[0].mentions[0]?.name, "Botty");
+    assert.equal(
+      oldest.messages[0].mentions[0]?.avatar_url,
+      "https://cdn.discordapp.com/avatars/u2/def456.png?size=128"
+    );
 
     const search = queryMessages(
       "job-testjob",
@@ -341,5 +391,16 @@ describe("export library", () => {
       await readFile(join(badDir, "messages.json"), "utf8"),
       "{ not json"
     );
+  });
+
+  test("removes a job export from the library without deleting its files", async () => {
+    assert.equal(await hideJobExport("job-testjob"), true);
+    await refreshExports();
+    assert.equal(getExport("job-testjob"), null);
+    const hidden = JSON.parse(
+      await readFile(join(runsDir, ".hidden-jobs.json"), "utf8")
+    ) as string[];
+    assert.ok(hidden.includes("job-testjob"));
+    assert.ok(existsSync(join(runsDir, "testjob", "messages.json")));
   });
 });

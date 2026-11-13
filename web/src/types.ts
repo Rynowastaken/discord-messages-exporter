@@ -439,12 +439,31 @@ export interface ExportFacets {
   last_timestamp: string | null;
 }
 
+export interface ExplorerEmbed {
+  type: string | null;
+  title: string | null;
+  description: string | null;
+  url: string | null;
+  provider: string | null;
+  author: string | null;
+  thumbnail_url: string | null;
+  image_url: string | null;
+  video_url: string | null;
+}
+
+export interface ExplorerMention {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
 export interface ExplorerMessage {
   id: string;
   timestamp: string;
   author_id: string | null;
   author_name: string | null;
   author_global_name: string | null;
+  author_avatar_url: string | null;
   author_bot: boolean;
   channel_id: string | null;
   channel_name: string | null;
@@ -457,6 +476,8 @@ export interface ExplorerMessage {
     emoji_id: string | null;
     count: number;
   }>;
+  embeds: ExplorerEmbed[];
+  mentions: ExplorerMention[];
   reply_to_id: string | null;
   edited: boolean;
 }

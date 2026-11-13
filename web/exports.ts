@@ -92,6 +92,7 @@ export interface MessageSummary {
   author_id: string | null;
   author_name: string | null;
   author_global_name: string | null;
+  author_avatar_url: string | null;
   author_bot: boolean;
   channel_id: string | null;
   channel_name: string | null;
@@ -100,8 +101,28 @@ export interface MessageSummary {
   attachment_count: number;
   reaction_count: number;
   reactions: Array<{ emoji: string; emoji_id: string | null; count: number }>;
+  embeds: MessageEmbedSummary[];
+  mentions: MessageMentionSummary[];
   reply_to_id: string | null;
   edited: boolean;
+}
+
+export interface MessageMentionSummary {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
+export interface MessageEmbedSummary {
+  type: string | null;
+  title: string | null;
+  description: string | null;
+  url: string | null;
+  provider: string | null;
+  author: string | null;
+  thumbnail_url: string | null;
+  image_url: string | null;
+  video_url: string | null;
 }
 
 export interface MessagePage {
@@ -445,6 +466,7 @@ async function considerSource(
 
 async function refreshJobs(): Promise<Set<string>> {
   const seen = new Set<string>();
+  const hidden = await readHiddenJobs();
   let entries;
   try {
     entries = await readdir(libraryRunsDir, { withFileTypes: true });
@@ -457,7 +479,7 @@ async function refreshJobs(): Promise<Set<string>> {
     const sourcePath = join(directory, "messages.json");
     if (!existsSync(sourcePath)) continue;
     const id = `job-${entry.name}`;
-    if (!JOB_ID.test(id)) continue;
+    if (!JOB_ID.test(id) || hidden.has(id)) continue;
     seen.add(id);
     await considerSource(
       id,
@@ -620,6 +642,42 @@ export async function removeImport(id: string): Promise<boolean> {
   if (!record || record.kind !== "import") return false;
   records.delete(id);
   await rm(record.directory, { recursive: true, force: true });
+  return true;
+}
+
+function hiddenJobsPath(): string {
+  return join(libraryRunsDir, ".hidden-jobs.json");
+}
+
+async function readHiddenJobs(): Promise<Set<string>> {
+  try {
+    const parsed = JSON.parse(await readFile(hiddenJobsPath(), "utf8"));
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : []
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Remove a finished job export from the Explorer library without deleting the
+ * run's files. The marker lives beside the run directories and is re-read on
+ * every refresh, so the export stays hidden across restarts.
+ */
+export async function hideJobExport(id: string): Promise<boolean> {
+  const record = records.get(id);
+  if (!record || record.kind !== "job") return false;
+  const hidden = await readHiddenJobs();
+  hidden.add(id);
+  await mkdir(libraryRunsDir, { recursive: true });
+  const target = hiddenJobsPath();
+  const tmp = `${target}.tmp`;
+  await writeFile(tmp, JSON.stringify([...hidden].sort(), null, 2), "utf8");
+  await rename(tmp, target);
+  records.delete(id);
   return true;
 }
 
@@ -1163,14 +1221,117 @@ function hasFilters(filters: ExportFilters): boolean {
   );
 }
 
+function httpUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function embedText(value: unknown, max = 400): string | null {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, max)
+    : null;
+}
+
+function parseEmbedSummary(value: unknown): MessageEmbedSummary[] {
+  if (typeof value !== "string" || !value) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const embeds: MessageEmbedSummary[] = [];
+  for (const entry of parsed.slice(0, 3)) {
+    if (!entry || typeof entry !== "object") continue;
+    const embed = entry as Record<string, unknown>;
+    const thumbnail =
+      embed.thumbnail && typeof embed.thumbnail === "object"
+        ? (embed.thumbnail as Record<string, unknown>)
+        : null;
+    const image =
+      embed.image && typeof embed.image === "object"
+        ? (embed.image as Record<string, unknown>)
+        : null;
+    const provider =
+      embed.provider && typeof embed.provider === "object"
+        ? (embed.provider as Record<string, unknown>)
+        : null;
+    const author =
+      embed.author && typeof embed.author === "object"
+        ? (embed.author as Record<string, unknown>)
+        : null;
+    const video =
+      embed.video && typeof embed.video === "object"
+        ? (embed.video as Record<string, unknown>)
+        : null;
+    const summary: MessageEmbedSummary = {
+      type: embedText(embed.type, 40),
+      title: embedText(embed.title, 300),
+      description: embedText(embed.description, 500),
+      url: httpUrl(embed.url),
+      provider: embedText(provider?.name, 80),
+      author: embedText(author?.name, 120),
+      thumbnail_url: httpUrl(thumbnail?.url),
+      image_url: httpUrl(image?.url),
+      video_url: httpUrl(video?.url),
+    };
+    if (
+      summary.title ||
+      summary.description ||
+      summary.thumbnail_url ||
+      summary.image_url ||
+      summary.url
+    ) {
+      embeds.push(summary);
+    }
+  }
+  return embeds;
+}
+
+function parseMentions(value: unknown): MessageMentionSummary[] {
+  if (typeof value !== "string" || !value) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const mentions: MessageMentionSummary[] = [];
+  for (const entry of parsed.slice(0, 50)) {
+    if (!entry || typeof entry !== "object") continue;
+    const user = entry as Record<string, unknown>;
+    const id = typeof user.id === "string" ? user.id : null;
+    if (!id) continue;
+    const name =
+      embedText(user.global_name, 120) ??
+      embedText(user.username, 120) ??
+      embedText(user.display_name, 120) ??
+      id;
+    mentions.push({
+      id,
+      name,
+      avatar_url: httpUrl(user.avatar_url),
+    });
+  }
+  return mentions;
+}
+
 export function queryMessages(
   id: string,
   filters: ExportFilters,
   offset: number,
   limit: number,
   order: "asc" | "desc"
-): MessagePage | null {
-  const record = records.get(id);
+): MessagePage | null {  const record = records.get(id);
   if (!record || record.status !== "ready") return null;
   const db = openIndex(record.indexPath);
   try {
@@ -1189,7 +1350,9 @@ export function queryMessages(
                 m.channel_name, substr(m.content, 1, 1200) AS content,
                 length(m.content) AS content_length,
                 m.attachment_count, m.reaction_count, m.reply_to_id,
-                m.edited
+                m.edited, json_extract(m.raw, '$.embeds') AS embeds_json,
+                json_extract(m.raw, '$.author.avatar_url') AS author_avatar_url,
+                json_extract(m.raw, '$.mentions') AS mentions_json
          FROM ${filter.from}${filter.where}
          ORDER BY m.timestamp ${direction}, m.id ${direction}
          LIMIT ? OFFSET ?`
@@ -1228,6 +1391,7 @@ export function queryMessages(
         author_id: sqlValue(row.author_id) || null,
         author_name: sqlValue(row.author_name) || null,
         author_global_name: sqlValue(row.author_global_name) || null,
+        author_avatar_url: httpUrl(row.author_avatar_url),
         author_bot: Boolean(row.author_bot),
         channel_id: sqlValue(row.channel_id) || null,
         channel_name: sqlValue(row.channel_name) || null,
@@ -1236,6 +1400,8 @@ export function queryMessages(
         attachment_count: asNumber(row.attachment_count),
         reaction_count: asNumber(row.reaction_count),
         reactions: reactionsByMessage.get(sqlValue(row.id)) ?? [],
+        embeds: parseEmbedSummary(row.embeds_json),
+        mentions: parseMentions(row.mentions_json),
         reply_to_id: sqlValue(row.reply_to_id) || null,
         edited: Boolean(row.edited),
       })),

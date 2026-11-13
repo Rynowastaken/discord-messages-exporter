@@ -101,15 +101,6 @@
   cursor: not-allowed;
 }
 
-.soft-button--danger {
-  color: var(--danger-ink);
-}
-
-.soft-button--danger:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
-}
-
 .job-actions .soft-button,
 .explorer-toolbar .soft-button {
   min-height: var(--control-height);
@@ -324,7 +315,9 @@
   padding: 28px 20px;
   border: 1px dashed var(--glass-edge);
   border-radius: var(--radius-tile);
-  background: rgba(255, 255, 255, .02);
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: var(--muted);
   font-size: .8rem;
   line-height: 1.5;
@@ -433,9 +426,64 @@
 
 .export-row-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 13px;
+}
+
+.export-row-primary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 7px;
+}
+
+.export-row-primary .soft-button {
+  width: 100%;
+}
+
+.export-row-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 1px;
+}
+
+.export-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.export-action-link:hover:not(:disabled) {
+  color: var(--foreground);
+}
+
+.export-action-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.export-action-link:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.export-action-link--danger,
+.export-action-link--danger:hover:not(:disabled) {
+  color: var(--danger-ink);
 }
 
 .job-status[data-status="ready"] {
@@ -869,6 +917,123 @@
   height: 12px;
 }
 
+.message-embeds {
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+  margin-top: 8px;
+}
+
+.message-embed {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 9px;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-left: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  border-radius: var(--radius-inner);
+  background: rgba(255, 255, 255, .025);
+}
+
+.message-embed--text {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.message-embed-media {
+  position: relative;
+  display: block;
+  width: 104px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, .24);
+}
+
+.message-embed-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-embed-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .24);
+  color: #fff;
+}
+
+.message-embed-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.message-embed-provider {
+  color: var(--faint);
+  font-size: .6rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.message-embed-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: .74rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+a.message-embed-title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.message-embed-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.message-embeds--detail .message-embed {
+  grid-template-columns: 148px minmax(0, 1fr);
+}
+
+.message-embeds--detail .message-embed-media {
+  width: 148px;
+}
+
+.message-embeds--detail .message-embed-title {
+  font-size: .8rem;
+}
+
+.message-embeds--detail .message-embed-description {
+  -webkit-line-clamp: 3;
+}
+
+@media (max-width: 600px) {
+  .message-embed {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .message-embed-media {
+    width: 84px;
+  }
+}
+
 .message-pager {
   display: flex;
   align-items: center;
@@ -984,6 +1149,32 @@
   font-weight: 600;
   letter-spacing: .07em;
   text-transform: uppercase;
+}
+
+.message-mentions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.message-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 3px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.message-mention .avatar-icon {
+  width: 18px;
+  height: 18px;
+  font-size: .55rem;
 }
 
 .attachment-list,
@@ -1213,7 +1404,7 @@
 
 .activity-fill-start {
   stop-color: var(--primary);
-  stop-opacity: .34;
+  stop-opacity: .24;
 }
 
 .activity-fill-end {
@@ -1678,7 +1869,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 0;
+  min-height: 24px;
+  padding: 2px 0;
   border: 0;
   background: transparent;
   color: var(--faint);
@@ -1945,6 +2137,7 @@
 }
 
 .sidebar-export {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1976,8 +2169,23 @@
 .sidebar-export--active,
 .sidebar-export--active:hover {
   background: var(--primary-soft);
-  box-shadow: inset 2px 0 0 var(--primary);
   color: var(--foreground);
+}
+
+.sidebar-export--active::before {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  content: "";
+}
+
+.sidebar-export:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--primary-ring);
 }
 
 .sidebar-export--active span:last-child {
@@ -3705,9 +3913,15 @@
   min-width: 220px;
 }
 
+.explorer-toolbar > .field.filter-search {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
 .filter-search .search-field {
   flex: 0 0 auto;
   width: 100%;
+  min-width: 0;
 }
 
 .filter-order {

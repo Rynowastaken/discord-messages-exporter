@@ -97,6 +97,14 @@ bot. The browser never stores the token. The greeting shows the token's own
 Discord user or bot.
 See [`web/README.md`](web/README.md) for the API and deployment notes.
 
+### Visual checks
+
+`npm run visual:check` builds the app, starts a private console with a fixture
+export, and drives headless Chromium through every page and settings tab at
+desktop and mobile widths. It audits overflow, clipped controls, overlapping hit
+areas, height mismatches, broken images, console errors, and failed requests.
+Screenshots and an HTML summary are written to `.visual-report/`.
+
 ### Modules
 
 The web console opens on a dashboard with links to:

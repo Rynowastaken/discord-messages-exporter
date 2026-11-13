@@ -108,15 +108,17 @@ export default function DashboardPage({
             </span>
             <span className="module-kicker">01 · Export</span>
             <h2 className="module-title">
-              {activeJob ? "An export is running" : "Start an export"}
+              {activeJob ? "Export in progress" : "Create an export"}
             </h2>
-            <p className="module-copy">One author, channel, or server.</p>
+            <p className="module-copy">Save an author, a channel, or a server.</p>
             <span className="module-meta">
-              {jobsState.jobs.length
-                ? `${compact(jobsState.jobs.length)} job${
-                    jobsState.jobs.length === 1 ? "" : "s"
-                  } this session`
-                : "No jobs this session"}
+              {activeJob
+                ? activeJob.stage || "Running"
+                : jobsState.jobs.length
+                  ? `${compact(jobsState.jobs.length)} export${
+                      jobsState.jobs.length === 1 ? "" : "s"
+                    } this session`
+                  : "Nothing running"}
             </span>
             <ArrowUpRight
               className="module-arrow"
@@ -132,13 +134,11 @@ export default function DashboardPage({
             </span>
             <span className="module-kicker">02 · Explorer</span>
             <h2 className="module-title">
-              {exports.length
-                ? `${compact(exports.length)} export${
-                    exports.length === 1 ? "" : "s"
-                  } ready to read`
-                : "Load an export"}
+              {exports.length ? "Browse your archive" : "Load an export"}
             </h2>
-            <p className="module-copy">Search your local archive.</p>
+            <p className="module-copy">
+              Search messages, authors, and channels.
+            </p>
             <span className="module-meta">
               {exports.length
                 ? `${plural(exports.length, "export", "exports")} · ${plural(
@@ -169,16 +169,18 @@ export default function DashboardPage({
             </span>
             <span className="module-kicker">03 · Insights</span>
             <h2 className="module-title" title={latest?.name}>
-              {latest ? latest.name : "Charts for an export"}
+              {latest ? latest.name : "Open an export's insights"}
             </h2>
-            <p className="module-copy">Activity, clock, and leaders.</p>
+            <p className="module-copy">
+              Activity, posting clock, and top authors.
+            </p>
             <span className="module-meta">
               {latest
                 ? `${
                     latest.message_count === null
                       ? "not indexed yet"
                       : plural(latest.message_count, "message", "messages")
-                  } · ${latest.kind === "job" ? "job export" : "loaded file"}`
+                  } · ${latest.kind === "job" ? "exported here" : "imported file"}`
                 : "Open an export to see its insights"}
             </span>
             <ArrowUpRight
@@ -227,7 +229,7 @@ export default function DashboardPage({
                 <div className="recent-export-main">
                   <span className="recent-export-name">{item.name}</span>
                   <span className="recent-export-meta">
-                    {item.kind === "job" ? "Job export" : "Loaded file"} ·{" "}
+                    {item.kind === "job" ? "Exported here" : "Imported file"} ·{" "}
                     {bytes(item.size_bytes)} ·{" "}
                     {item.message_count === null
                       ? item.status

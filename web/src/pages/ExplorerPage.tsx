@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BarChart3,
+  Download,
   FileUp,
   MessageSquare,
   RefreshCw,
@@ -37,7 +38,7 @@ function modeLabel(item: ExportSummary): string {
     const channel = item.metadata?.channel?.name;
     return channel ? `Author · ${channel}` : "One author";
   }
-  return item.kind === "job" ? "Job export" : "Loaded file";
+  return item.kind === "job" ? "Exported here" : "Imported file";
 }
 
 export default function ExplorerPage() {
@@ -115,11 +116,11 @@ export default function ExplorerPage() {
   }
 
   async function remove(item: ExportSummary) {
-    if (
-      !window.confirm(
-        `Remove “${item.name}” from the Explorer? The imported file and its index will be deleted.`
-      )
-    ) {
+    const message =
+      item.kind === "import"
+        ? `Remove “${item.name}” from the Explorer? The imported file and its index will be deleted.`
+        : `Remove “${item.name}” from the Explorer library? Its job files stay on disk.`;
+    if (!window.confirm(message)) {
       return;
     }
     setBusyId(item.id);
@@ -235,7 +236,7 @@ export default function ExplorerPage() {
                 <div className="export-row-head">
                   <div className="export-row-title">
                     <span className="export-kind">
-                      {item.kind === "job" ? "Job" : "Loaded"}
+                      {item.kind === "job" ? "Exported" : "Imported"}
                     </span>
                     <h3>{item.name}</h3>
                   </div>
@@ -283,56 +284,74 @@ export default function ExplorerPage() {
                 ) : null}
 
                 <div className="export-row-actions">
-                  <a
-                    className="soft-button"
-                    href={`#/explorer/${encodeURIComponent(item.id)}/messages`}
-                  >
-                    <MessageSquare
-                      size={16}
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    />
-                    Messages
-                  </a>
-                  <a
-                    className="soft-button"
-                    href={`#/explorer/${encodeURIComponent(item.id)}/insights`}
-                  >
-                    <BarChart3
-                      size={16}
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    />
-                    Insights
-                  </a>
-                  <a
-                    className="soft-button"
-                    href={api.exportDownloadUrl(item.id)}
-                    download
-                  >
-                    JSON
-                  </a>
-                  {item.status === "failed" ? (
-                    <button
-                      type="button"
-                      className="soft-button"
-                      onClick={() => void reindex(item)}
-                      disabled={busyId === item.id}
-                    >
-                      Retry index
-                    </button>
+                  {item.status === "ready" ? (
+                    <div className="export-row-primary">
+                      <a
+                        className="soft-button"
+                        href={`#/explorer/${encodeURIComponent(item.id)}/messages`}
+                      >
+                        <MessageSquare
+                          size={16}
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        />
+                        Messages
+                      </a>
+                      <a
+                        className="soft-button"
+                        href={`#/explorer/${encodeURIComponent(item.id)}/insights`}
+                      >
+                        <BarChart3
+                          size={16}
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        />
+                        Insights
+                      </a>
+                    </div>
+                  ) : item.status === "unindexed" ||
+                    item.status === "failed" ? (
+                    <div className="export-row-primary">
+                      <button
+                        type="button"
+                        className="soft-button"
+                        onClick={() => void reindex(item)}
+                        disabled={busyId === item.id}
+                      >
+                        <RefreshCw
+                          size={16}
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        />
+                        {item.status === "failed"
+                          ? "Retry index"
+                          : "Index now"}
+                      </button>
+                    </div>
                   ) : null}
-                  {item.kind === "import" ? (
+                  <div className="export-row-secondary">
+                    <a
+                      className="export-action-link"
+                      href={api.exportDownloadUrl(item.id)}
+                      download
+                    >
+                      <Download
+                        size={14}
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                      />
+                      Download JSON
+                    </a>
                     <button
                       type="button"
-                      className="soft-button soft-button--danger"
+                      className="export-action-link export-action-link--danger"
                       onClick={() => void remove(item)}
                       disabled={busyId === item.id}
                     >
-                      <Trash2 size={16} strokeWidth={1.5} aria-hidden="true" />
+                      <Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />
                       Remove
                     </button>
-                  ) : null}
+                  </div>
                 </div>
               </article>
             ))}
@@ -452,7 +471,7 @@ export default function ExplorerPage() {
               <dd>{bytes(totalBytes)}</dd>
             </div>
             <div>
-              <dt>Loaded</dt>
+              <dt>Imported files</dt>
               <dd>{loadedCount}</dd>
             </div>
           </dl>

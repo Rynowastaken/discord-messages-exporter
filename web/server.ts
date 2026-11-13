@@ -52,6 +52,7 @@ import {
   getExportDirectory,
   getExportKind,
   getExportSourcePath,
+  hideJobExport,
   listExports,
   prepareImport,
   queryFacets,
@@ -2081,12 +2082,13 @@ async function handleExports(
       apiError(res, "export not found", 404);
       return true;
     }
-    if (getExportKind(id) !== "import") {
-      apiError(res, "only loaded exports can be removed", 409);
-      return true;
-    }
     if (summary.status === "indexing") {
       apiError(res, "the export is still indexing", 409);
+      return true;
+    }
+    if (getExportKind(id) === "job") {
+      await hideJobExport(id);
+      sendJson(res, { ok: true, hidden: true });
       return true;
     }
     await removeImport(id);

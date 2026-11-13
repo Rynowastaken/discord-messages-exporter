@@ -47,6 +47,7 @@ export interface DiscordMessage {
   pinned?: boolean;
   content?: string;
   author?: DiscordUser;
+  mentions?: DiscordUser[];
   attachments?: DiscordAttachment[];
   embeds?: unknown[];
   sticker_items?: unknown[];

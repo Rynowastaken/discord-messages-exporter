@@ -18,3 +18,6 @@ web/settings.json
 web/settings.json.tmp
 web/appearance-background.bin
 web/appearance-background.bin.tmp
+.hidden-jobs.json
+.hidden-jobs.json.tmp
+.visual-report/

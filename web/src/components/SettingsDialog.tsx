@@ -1095,7 +1095,7 @@ export default function SettingsDialog({
                 placeholder={
                   settingsLoading
                     ? "Loading…"
-                    : "Default — keep each export with its job"
+                    : "Default job folder"
                 }
                 value={outputDir}
                 disabled={settingsLoading}
