@@ -1,5 +1,8 @@
 name: Desktop release
 
+# Release asset names must always include the platform:
+# Windows_x64_Portable, Linux_x86_64, and so on.
+
 on:
   push:
     tags:
@@ -53,6 +56,20 @@ jobs:
 
       - name: Build Linux installers
         run: npm run desktop:build
+
+      - name: Rename Linux bundles with the platform
+        run: |
+          version=$(node -p "require('./package.json').version")
+          shopt -s nullglob
+          for file in src-tauri/target/release/bundle/deb/*.deb; do
+            mv "$file" "src-tauri/target/release/bundle/deb/Discord-Messages-Exporter_${version}_Linux_x86_64.deb"
+          done
+          for file in src-tauri/target/release/bundle/rpm/*.rpm; do
+            mv "$file" "src-tauri/target/release/bundle/rpm/Discord-Messages-Exporter_${version}_Linux_x86_64.rpm"
+          done
+          for file in src-tauri/target/release/bundle/appimage/*.AppImage; do
+            mv "$file" "src-tauri/target/release/bundle/appimage/Discord-Messages-Exporter_${version}_Linux_x86_64.AppImage"
+          done
 
       - name: Upload Linux bundles
         uses: actions/upload-artifact@v4
@@ -131,7 +148,7 @@ jobs:
           "Discord Messages Exporter Server.exe" --host 0.0.0.0 --port 8788
           pause
           "@ | Set-Content "$app/Start Server.cmd"
-          Compress-Archive -Path "$app/*" -DestinationPath "$root/Discord-Messages-Exporter_${version}_x64-portable.zip" -Force
+          Compress-Archive -Path "$app/*" -DestinationPath "$root/Discord-Messages-Exporter_${version}_Windows_x64_Portable.zip" -Force
 
       - name: Upload portable Windows bundle
         uses: actions/upload-artifact@v4
