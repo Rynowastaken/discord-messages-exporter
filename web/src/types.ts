@@ -538,7 +538,7 @@ export interface ExportStats {
   top_authors: FacetValue[];
   top_channels: FacetValue[];
   attachment_types: Array<{ type: string; count: number }>;
-  top_reactions: Array<{ emoji: string; count: number }>;
+  top_reactions: Array<{ emoji: string; emoji_id: string | null; count: number }>;
   top_domains: Array<{ domain: string; count: number }>;
   top_words: Array<{ word: string; count: number }>;
   length_buckets: Array<{ label: string; count: number }>;

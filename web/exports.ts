@@ -188,7 +188,7 @@ export interface ExportStats {
   top_authors: FacetValue[];
   top_channels: FacetValue[];
   attachment_types: Array<{ type: string; count: number }>;
-  top_reactions: Array<{ emoji: string; count: number }>;
+  top_reactions: Array<{ emoji: string; emoji_id: string | null; count: number }>;
   top_domains: Array<{ domain: string; count: number }>;
   top_words: Array<{ word: string; count: number }>;
   length_buckets: Array<{ label: string; count: number }>;
@@ -1587,8 +1587,8 @@ export function queryStats(
     const topReactions = tableQuery(
       "reactions r",
       "r",
-      "r.emoji AS emoji, SUM(r.count) AS count",
-      "r.emoji",
+      "r.emoji AS emoji, r.emoji_id AS emoji_id, SUM(r.count) AS count",
+      "r.emoji, r.emoji_id",
       "count DESC, r.emoji ASC",
       12
     );
@@ -1814,6 +1814,7 @@ export function queryStats(
       })),
       top_reactions: topReactions.map((row) => ({
         emoji: sqlValue(row.emoji) || "unknown",
+        emoji_id: sqlValue(row.emoji_id) || null,
         count: asNumber(row.count),
       })),
       top_domains: topDomains.map((row) => ({

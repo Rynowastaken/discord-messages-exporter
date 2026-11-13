@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Activity,
+  AlertTriangle,
   CalendarDays,
   Clock3,
   FileText,
@@ -43,6 +44,31 @@ const WEEKDAYS = [
   "Friday",
   "Saturday",
 ];
+
+function ReactionEmoji({
+  emoji,
+  emojiId,
+}: {
+  emoji: string;
+  emojiId: string | null;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (emojiId && !failed) {
+    return (
+      <img
+        className="reaction-image"
+        src={`https://cdn.discordapp.com/emojis/${emojiId}.png?size=32`}
+        alt=""
+        title={emoji}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return <span>{emoji}</span>;
+}
+
 
 function emptyFilters(): ExportFilters {
   return { q: "", author: "", channel: "", from: "", to: "" };
@@ -567,12 +593,41 @@ export default function InsightsPage({ exportId }: InsightsPageProps) {
                 </header>
                 <div className="reaction-board">
                   {stats.top_reactions.map((reaction) => (
-                    <span className="reaction-tile" key={reaction.emoji}>
-                      <span aria-hidden="true">{reaction.emoji}</span>
+                    <span
+                      className="reaction-tile"
+                      key={`${reaction.emoji_id ?? reaction.emoji}`}
+                      title={reaction.emoji}
+                    >
+                      <span aria-hidden="true">
+                        <ReactionEmoji
+                          emoji={reaction.emoji}
+                          emojiId={reaction.emoji_id}
+                        />
+                      </span>
                       <strong>{compact(reaction.count)}</strong>
                     </span>
                   ))}
                 </div>
+                {stats.top_reactions.some(
+                  (reaction) => reaction.emoji_id
+                ) ? (
+                  <div
+                    className="message-warning reaction-warning"
+                    role="note"
+                  >
+                    <AlertTriangle
+                      size={15}
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    <p>
+                      Custom emoji images are loaded from Discord, not stored
+                      in this export. They may be unavailable offline or
+                      without access to the source server; the reaction name
+                      is shown instead.
+                    </p>
+                  </div>
+                ) : null}
               </article>
             ) : null}
           </div>

@@ -93,7 +93,10 @@ const FIXTURE_MESSAGES = [
       "A **bold** note with *italic* text, `inline code`, and a [link](https://example.com).",
     mentions: [],
     attachments: [],
-    reactions: [{ emoji: { name: "ok" }, count: 3 }],
+    reactions: [
+      { emoji: { name: "pin", id: "1123085349598535750" }, count: 3 },
+      { emoji: { name: "🔥" }, count: 1 },
+    ],
   },
   {
     id: "9102",
@@ -901,6 +904,18 @@ async function main() {
         width: 1440,
         height: 1000,
       },
+      {
+        name: "insights-reactions-desktop",
+        path: `/explorer/${fixture}/insights`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.reaction-board')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(350);
+        },
+      },
       { name: "dashboard-mobile", path: "/", width: 390, height: 844, mobile: true },
       { name: "export-mobile", path: "/export", width: 390, height: 844, mobile: true },
       { name: "explorer-mobile", path: "/explorer", width: 390, height: 844, mobile: true },
@@ -917,6 +932,19 @@ async function main() {
         width: 390,
         height: 844,
         mobile: true,
+      },
+      {
+        name: "insights-reactions-mobile",
+        path: `/explorer/${fixture}/insights`,
+        width: 390,
+        height: 844,
+        mobile: true,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.reaction-board')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(350);
+        },
       },
     ];
 

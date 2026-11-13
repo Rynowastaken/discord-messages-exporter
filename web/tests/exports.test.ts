@@ -324,7 +324,9 @@ describe("export library", () => {
     assert.equal(stats.longest_message?.id, "1002");
     assert.equal(stats.first_message?.id, "1001");
     assert.equal(stats.last_message?.id, "1004");
-    assert.deepEqual(stats.top_reactions, [{ emoji: "ok", count: 3 }]);
+    assert.deepEqual(stats.top_reactions, [
+      { emoji: "ok", emoji_id: null, count: 3 },
+    ]);
     assert.deepEqual(stats.top_domains, []);
     assert.ok(stats.top_words.some((row) => row.word === "world"));
     assert.deepEqual(stats.length_buckets, [
