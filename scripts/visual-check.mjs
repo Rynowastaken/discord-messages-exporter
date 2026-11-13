@@ -1160,6 +1160,18 @@ async function main() {
         expect: `document.querySelector(".message-row")?.innerText.includes("const ready") ?? false`,
       },
       {
+        name: "messages-content-menu-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.clickText("Any content");
+          await page.waitFor(
+            `Boolean(document.querySelector(".picker-menu[data-state='open']"))`
+          );
+        },
+      },
+      {
         name: "insights-desktop",
         path: `/explorer/${fixture}/insights`,
         width: 1440,
