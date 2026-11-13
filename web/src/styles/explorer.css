@@ -2626,6 +2626,8 @@ a.message-embed-title:hover {
 }
 
 .export-workbench-main {
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 14px;

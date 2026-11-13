@@ -1069,6 +1069,41 @@ async function main() {
         expect: `location.hash.includes("/messages")`,
       },
       { name: "export-desktop", path: "/export", width: 1440, height: 1000 },
+      {
+        name: "export-picker-layer-desktop",
+        path: "/export",
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(`(() => {
+            const target = document.querySelector('.target-panel');
+            if (!target) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'picker-select';
+            wrap.style.width = '260px';
+            wrap.style.marginTop = '12px';
+            wrap.innerHTML =
+              '<button type="button" class="picker-trigger"><span class="picker-value"><span>Choose a server…</span></span></button>' +
+              '<div class="picker-menu" data-state="open" data-placement="bottom">' +
+              Array.from({ length: 6 }, (_, index) =>
+                '<button type="button" class="picker-option"><span class="picker-option-value"><span>Test server ' + (index + 1) + '</span></span></button>'
+              ).join('') +
+              '</div>';
+            target.appendChild(wrap);
+          })()`);
+          await sleep(400);
+        },
+        expect: `(() => {
+          const menu = document.querySelector('.picker-menu[data-state="open"]');
+          if (!menu) return false;
+          const rect = menu.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.bottom - 12
+          );
+          return Boolean(hit && menu.contains(hit));
+        })()`,
+      },
       { name: "explorer-desktop", path: "/explorer", width: 1440, height: 1000 },
       {
         name: "messages-desktop",
