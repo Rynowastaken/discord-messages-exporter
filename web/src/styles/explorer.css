@@ -1157,6 +1157,35 @@ a.message-embed-title:hover {
   gap: 6px;
 }
 
+.message-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: var(--radius-inner);
+  background: var(--accent-soft);
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.5;
+}
+
+.message-warning > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.message-warning p {
+  margin: 0;
+}
+
+.message-warning strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 .message-mention {
   display: inline-flex;
   align-items: center;

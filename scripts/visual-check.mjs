@@ -190,7 +190,15 @@ const FIXTURE_MESSAGES = [
     },
     content: "A spoiler ||hidden answer|| and a plain :wave: shortcode.",
     mentions: [],
-    attachments: [],
+    attachments: [
+      {
+        id: "att-fixture",
+        filename: "notes.txt",
+        size: 1024,
+        content_type: "text/plain",
+        url: "https://example.com/notes.txt",
+      },
+    ],
     reactions: [],
   },
 ].map((message) => ({

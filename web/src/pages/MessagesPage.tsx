@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ChevronLeft,
@@ -808,11 +809,27 @@ export default function MessagesPage({
                       exportId={exportId}
                       localAttachments={Boolean(detail.export.has_attachments)}
                     />
-                    <p className="note-line">
-                      {detail.export.has_attachments
-                        ? "Files in this export are served from local storage. Anything that failed to download falls back to the signed Discord link."
-                        : "Attachment bytes are not archived. Signed Discord links expire, so a photo that cannot load stays as an unavailable card instead of opening a dead page."}
-                    </p>
+                    {detail.export.has_attachments ? (
+                      <p className="note-line">
+                        Files in this export are served from local storage.
+                        Anything that failed to download falls back to the
+                        signed Discord link.
+                      </p>
+                    ) : (
+                      <div className="message-warning" role="note">
+                        <AlertTriangle
+                          size={15}
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        />
+                        <p>
+                          <strong>Attachment bytes are not archived.</strong>{" "}
+                          Signed Discord links expire, so a photo that cannot
+                          load stays as an unavailable card instead of opening
+                          a dead page.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
