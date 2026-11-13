@@ -14,7 +14,7 @@ Windows · Linux · Your archive stays on your machine
 
 - 🗂️ **Three ways to export** — one author, one channel, or every text channel in a server.
 - 🔎 **A real search engine** — full-text search plus filters for author, channel, date, and content type.
-- 🖼️ **Messages that look like messages** — markdown, custom emoji, reactions, replies, mentions, link previews, and attachments.
+- 🖼️ **Messages that look like messages** — markdown, custom emoji, reactions, replies, mentions, link previews, stickers, and attachments.
 - 📊 **Insights worth opening** — activity over time, a weekday-by-hour posting clock, top authors, reactions, words, links, and more.
 - 🎨 **A console you can make yours** — nine color schemes, brightness controls, and a custom background.
 - 🔒 **Local by default** — your exports, index, and settings live on your computer.

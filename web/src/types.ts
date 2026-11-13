@@ -468,6 +468,12 @@ export interface ExplorerEmbed {
   video_url: string | null;
 }
 
+export interface ExplorerSticker {
+  id: string;
+  name: string | null;
+  format_type: number | null;
+}
+
 export interface ExplorerMention {
   id: string;
   name: string | null;
@@ -494,6 +500,7 @@ export interface ExplorerMessage {
     count: number;
   }>;
   embeds: ExplorerEmbed[];
+  stickers: ExplorerSticker[];
   mentions: ExplorerMention[];
   reply_to_id: string | null;
   edited: boolean;

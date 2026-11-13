@@ -98,7 +98,7 @@ const SAMPLE = {
       message_reference: null,
       referenced_message: null,
       embeds: [],
-      sticker_items: [],
+      sticker_items: [{ id: "s1", name: "Wave", format_type: 1 }],
       thread: null,
     },
     {
@@ -351,6 +351,18 @@ describe("export library", () => {
     assert.equal(links?.total, 1);
     assert.equal(links?.messages[0].id, "1001");
 
+    const stickers = queryMessages(
+      "job-testjob",
+      { content: "stickers" },
+      0,
+      100,
+      "desc"
+    );
+    assert.equal(stickers?.total, 1);
+    assert.equal(stickers?.messages[0].id, "1002");
+    assert.equal(stickers?.messages[0].stickers[0]?.name, "Wave");
+    assert.equal(stickers?.messages[0].stickers[0]?.format_type, 1);
+
     const detail = queryMessage("job-testjob", "1002");
     assert.ok(detail);
     assert.equal(detail.id, "1002");
@@ -376,7 +388,7 @@ describe("export library", () => {
         files: 0,
         code: 1,
         links: 1,
-        stickers: 0,
+        stickers: 1,
       }
     );
 

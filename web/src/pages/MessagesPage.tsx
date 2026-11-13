@@ -21,6 +21,7 @@ import AttachmentGrid from "../components/AttachmentGrid";
 import Avatar from "../components/Avatar";
 import ExportHeader from "../components/ExportHeader";
 import MessageEmbeds from "../components/MessageEmbeds";
+import MessageStickers from "../components/MessageStickers";
 import PostingClock, { type ClockSelection } from "../charts/PostingClock";
 import MessageMarkdown from "../components/MessageMarkdown";
 import SelectMenu from "../components/SelectMenu";
@@ -76,6 +77,11 @@ interface RawMessage {
     avatar_url?: string | null;
   }>;
   attachments?: RawAttachment[];
+  sticker_items?: Array<{
+    id?: string;
+    name?: string | null;
+    format_type?: number | null;
+  }>;
   embeds?: Array<{
     title?: string;
     description?: string;
@@ -728,11 +734,15 @@ export default function MessagesPage({
                         mentions={message.mentions}
                         className="message-content"
                       />
-                    ) : (
+                    ) : message.stickers?.length ||
+                      message.embeds?.length ? null : (
                       <span className="message-content message-empty">
                         no text content
                       </span>
                     )}
+                    {message.stickers?.length ? (
+                      <MessageStickers stickers={message.stickers} />
+                    ) : null}
                     {message.embeds?.length ? (
                       <MessageEmbeds embeds={message.embeds} />
                     ) : null}
@@ -890,6 +900,13 @@ export default function MessagesPage({
                     no text content
                   </p>
                 )}
+
+                {selected.sticker_items?.length ? (
+                  <div className="message-detail-block">
+                    <h3>Stickers</h3>
+                    <MessageStickers stickers={selected.sticker_items} />
+                  </div>
+                ) : null}
 
                 {selected.mentions?.length ? (
                   <div className="message-detail-block">

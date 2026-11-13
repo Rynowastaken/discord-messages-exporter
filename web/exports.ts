@@ -119,6 +119,7 @@ export interface MessageSummary {
   reaction_count: number;
   reactions: Array<{ emoji: string; emoji_id: string | null; count: number }>;
   embeds: MessageEmbedSummary[];
+  stickers: MessageStickerSummary[];
   mentions: MessageMentionSummary[];
   reply_to_id: string | null;
   edited: boolean;
@@ -140,6 +141,12 @@ export interface MessageEmbedSummary {
   thumbnail_url: string | null;
   image_url: string | null;
   video_url: string | null;
+}
+
+export interface MessageStickerSummary {
+  id: string;
+  name: string | null;
+  format_type: number | null;
 }
 
 export interface MessagePage {
@@ -1448,6 +1455,33 @@ function parseMentions(value: unknown): MessageMentionSummary[] {
   return mentions;
 }
 
+function parseStickers(value: unknown): MessageStickerSummary[] {
+  if (typeof value !== "string" || !value) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const stickers: MessageStickerSummary[] = [];
+  for (const entry of parsed.slice(0, 10)) {
+    if (!entry || typeof entry !== "object") continue;
+    const sticker = entry as Record<string, unknown>;
+    const id = typeof sticker.id === "string" ? sticker.id : null;
+    if (!id) continue;
+    stickers.push({
+      id,
+      name: embedText(sticker.name, 120),
+      format_type:
+        typeof sticker.format_type === "number"
+          ? sticker.format_type
+          : null,
+    });
+  }
+  return stickers;
+}
+
 export function queryMessages(
   id: string,
   filters: ExportFilters,
@@ -1474,6 +1508,7 @@ export function queryMessages(
                 length(m.content) AS content_length,
                 m.attachment_count, m.reaction_count, m.reply_to_id,
                 m.edited, json_extract(m.raw, '$.embeds') AS embeds_json,
+                json_extract(m.raw, '$.sticker_items') AS stickers_json,
                 json_extract(m.raw, '$.author.avatar_url') AS author_avatar_url,
                 json_extract(m.raw, '$.mentions') AS mentions_json
          FROM ${filter.from}${filter.where}
@@ -1524,6 +1559,7 @@ export function queryMessages(
         reaction_count: asNumber(row.reaction_count),
         reactions: reactionsByMessage.get(sqlValue(row.id)) ?? [],
         embeds: parseEmbedSummary(row.embeds_json),
+        stickers: parseStickers(row.stickers_json),
         mentions: parseMentions(row.mentions_json),
         reply_to_id: sqlValue(row.reply_to_id) || null,
         edited: Boolean(row.edited),

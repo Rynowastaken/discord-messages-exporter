@@ -280,7 +280,7 @@ const FIXTURE_MESSAGES = [
       global_name: "Ryno",
       avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
     },
-    content: "Added the sticker set for the community.",
+    content: "",
     mentions: [],
     attachments: [],
     sticker_items: [{ id: "sticker-1", name: "nice", format_type: 1 }],
@@ -1193,6 +1193,29 @@ async function main() {
           );
         },
         expect: `document.querySelector(".message-row")?.innerText.includes("const ready") ?? false`,
+      },
+      {
+        name: "messages-content-stickers-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.clickText("Any content");
+          await page.waitFor(
+            `Boolean(document.querySelector(".picker-menu[data-state='open']"))`
+          );
+          const chosen = await page.evaluate(`(() => {
+            const option = [...document.querySelectorAll(".picker-option")]
+              .find((item) => (item.innerText || "").trim().startsWith("Stickers"));
+            option?.click();
+            return Boolean(option);
+          })()`);
+          if (!chosen) throw new Error("sticker filter option not found");
+          await page.waitFor(
+            `document.querySelectorAll(".message-row").length === 1`
+          );
+        },
+        expect: `Boolean(document.querySelector(".message-sticker")) && !document.querySelector(".message-row")?.innerText.includes("no text content")`,
       },
       {
         name: "messages-content-menu-desktop",
