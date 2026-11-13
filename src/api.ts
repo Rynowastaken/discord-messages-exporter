@@ -14,6 +14,8 @@
 import { sleep } from "./util.js";
 
 export const API_BASE = "https://discord.com/api/v10";
+export const BOT_USER_AGENT =
+  "DiscordBot (https://github.com/Rynowastaken/discord-messages-exporter, 0.2.0)";
 export const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -158,7 +160,8 @@ export class DiscordClient {
     this.prefix = options.isBot ? "Bot " : "";
     this.timeoutMs = (options.timeout ?? 45) * 1000;
     this.maxRetries = options.maxRetries ?? 12;
-    this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
+    this.userAgent =
+      options.userAgent ?? (options.isBot ? BOT_USER_AGENT : DEFAULT_USER_AGENT);
     this.limiter = new RateLimiter(options.rate ?? 6);
   }
 
