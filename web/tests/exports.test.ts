@@ -231,6 +231,17 @@ describe("export library", () => {
       "https://cdn.discordapp.com/avatars/u2/def456.png?size=128"
     );
 
+    const clockWindow = queryMessages(
+      "job-testjob",
+      { weekday: 4, hour: 10 },
+      0,
+      10,
+      "asc"
+    );
+    assert.ok(clockWindow);
+    assert.equal(clockWindow.total, 1);
+    assert.equal(clockWindow.messages[0].id, "1001");
+
     const search = queryMessages(
       "job-testjob",
       { q: "hello" },

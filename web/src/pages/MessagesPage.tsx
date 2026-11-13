@@ -21,6 +21,7 @@ import AttachmentGrid from "../components/AttachmentGrid";
 import Avatar from "../components/Avatar";
 import ExportHeader from "../components/ExportHeader";
 import MessageEmbeds from "../components/MessageEmbeds";
+import PostingClock, { type ClockSelection } from "../charts/PostingClock";
 import MessageMarkdown from "../components/MessageMarkdown";
 import SelectMenu from "../components/SelectMenu";
 import { api } from "../api";
@@ -216,6 +217,9 @@ export default function MessagesPage({
   const [selectedError, setSelectedError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [pollKey, setPollKey] = useState(0);
+  const [clockCells, setClockCells] = useState<
+    Array<{ weekday: number; hour: number; count: number }>
+  >([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const loadDetail = useCallback(async () => {
@@ -249,6 +253,42 @@ export default function MessagesPage({
       if (timer) window.clearTimeout(timer);
     };
   }, [loadDetail, pollKey]);
+
+  useEffect(() => {
+    if (detail?.export.status !== "ready") {
+      setClockCells([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      api
+        .exportStats(exportId, {
+          q: filters.q,
+          author: filters.author,
+          channel: filters.channel,
+          from: filters.from,
+          to: filters.to,
+        })
+        .then((data) => {
+          if (!cancelled) setClockCells(data.stats.clock);
+        })
+        .catch(() => {
+          if (!cancelled) setClockCells([]);
+        });
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    exportId,
+    detail?.export.status,
+    filters.q,
+    filters.author,
+    filters.channel,
+    filters.from,
+    filters.to,
+  ]);
 
   useEffect(() => {
     if (initialQuery === undefined) return;
@@ -336,6 +376,22 @@ export default function MessagesPage({
   function clearFilters() {
     setSearch("");
     setFilters(emptyFilters());
+    setOffset(0);
+    setSelectedId(null);
+  }
+
+  function selectClock(selection: ClockSelection | null) {
+    setFilters((current) => {
+      const next = { ...current };
+      if (selection) {
+        next.weekday = selection.weekday;
+        next.hour = selection.hour;
+      } else {
+        delete next.weekday;
+        delete next.hour;
+      }
+      return next;
+    });
     setOffset(0);
     setSelectedId(null);
   }
@@ -451,8 +507,14 @@ export default function MessagesPage({
       filters.author ||
       filters.channel ||
       filters.from ||
-      filters.to
+      filters.to ||
+      filters.weekday !== undefined ||
+      filters.hour !== undefined
   );
+  const clockSelection: ClockSelection | null =
+    filters.weekday !== undefined && filters.hour !== undefined
+      ? { weekday: filters.weekday, hour: filters.hour }
+      : null;
   const jumpUrl = selected
     ? discordMessageUrl(
         item.metadata,
@@ -552,6 +614,16 @@ export default function MessagesPage({
           </div>
         ) : null}
       </section>
+
+      {detail.export.status === "ready" && clockCells.length ? (
+        <section className="message-clock" aria-label="Filter by posting time">
+          <PostingClock
+            cells={clockCells}
+            selected={clockSelection}
+            onSelect={selectClock}
+          />
+        </section>
+      ) : null}
 
       <div className="message-summary">
         <span>

@@ -875,6 +875,42 @@ async function main() {
         height: 1000,
       },
       {
+        name: "messages-clock-tooltip-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          const point = await page.evaluate(`(() => {
+            const cell = document.querySelector(".clock-cell--interactive");
+            if (!cell) return null;
+            const rect = cell.getBoundingClientRect();
+            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+          })()`);
+          if (point) {
+            await page.send("Input.dispatchMouseEvent", {
+              type: "mouseMoved",
+              x: point.x,
+              y: point.y,
+            });
+            await sleep(350);
+          }
+        },
+      },
+      {
+        name: "messages-clock-selected-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(`(() => {
+            const cell = [...document.querySelectorAll(".clock-cell--interactive")]
+              .find((item) => !/0 messages/.test(item.getAttribute("aria-label") || ""));
+            cell?.click();
+          })()`);
+          await sleep(700);
+        },
+      },
+      {
         name: "messages-detail-desktop",
         path: `/explorer/${fixture}/messages`,
         width: 1440,
@@ -905,6 +941,44 @@ async function main() {
         height: 1000,
       },
       {
+        name: "insights-activity-hover-desktop",
+        path: `/explorer/${fixture}/insights`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.activity-chart')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(500);
+          const point = await page.evaluate(`(() => {
+            const hit = document.querySelector(".activity-hit");
+            if (!hit) return null;
+            const rect = hit.getBoundingClientRect();
+            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+          })()`);
+          if (point) {
+            await page.send("Input.dispatchMouseEvent", {
+              type: "mouseMoved",
+              x: point.x,
+              y: point.y,
+            });
+            await sleep(300);
+          }
+        },
+      },
+      {
+        name: "insights-words-desktop",
+        path: `/explorer/${fixture}/insights`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.word-cloud')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(350);
+        },
+      },
+      {
         name: "insights-reactions-desktop",
         path: `/explorer/${fixture}/insights`,
         width: 1440,
@@ -932,6 +1006,19 @@ async function main() {
         width: 390,
         height: 844,
         mobile: true,
+      },
+      {
+        name: "insights-words-mobile",
+        path: `/explorer/${fixture}/insights`,
+        width: 390,
+        height: 844,
+        mobile: true,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.word-cloud')?.scrollIntoView({ block: 'center' })"
+          );
+          await sleep(350);
+        },
       },
       {
         name: "insights-reactions-mobile",

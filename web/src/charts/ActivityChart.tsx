@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { fmt } from "../lib/format";
 
 interface Bucket {
@@ -59,9 +61,21 @@ function bucketsFor(days: Array<{ day: string; count: number }>): Bucket[] {
 
 export default function ActivityChart({ days }: ActivityChartProps) {
   const [hover, setHover] = useState<number | null>(null);
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  const [width, setWidth] = useState(720);
+  const chartRef = useRef<HTMLDivElement>(null);
   const buckets = useMemo(() => bucketsFor(days), [days]);
-  const width = 720;
   const height = 190;
+
+  useEffect(() => {
+    const element = chartRef.current;
+    if (!element) return undefined;
+    const measure = () => setWidth(Math.max(320, element.clientWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const pad = 8;
   const counts = buckets.map((bucket) => bucket.count);
   const flat = new Set(counts).size === 1;
@@ -113,7 +127,7 @@ export default function ActivityChart({ days }: ActivityChartProps) {
           </div>
         </div>
       ) : (
-        <div className="activity-chart">
+        <div className="activity-chart" ref={chartRef}>
           <svg
           viewBox={`0 0 ${width} ${height}`}
           role="img"
@@ -154,10 +168,29 @@ export default function ActivityChart({ days }: ActivityChartProps) {
                 width={Math.max(2, step)}
                 height={height}
                 className="activity-hit"
-                onMouseEnter={() => setHover(index)}
-                onFocus={() => setHover(index)}
-                onMouseLeave={() => setHover(null)}
-                onBlur={() => setHover(null)}
+                onMouseEnter={(event: ReactMouseEvent<SVGRectElement>) => {
+                  setHover(index);
+                  setPointer({ x: event.clientX, y: event.clientY });
+                }}
+                onMouseMove={(event: ReactMouseEvent<SVGRectElement>) => {
+                  setPointer({ x: event.clientX, y: event.clientY });
+                }}
+                onFocus={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setHover(index);
+                  setPointer({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top,
+                  });
+                }}
+                onMouseLeave={() => {
+                  setHover(null);
+                  setPointer(null);
+                }}
+                onBlur={() => {
+                  setHover(null);
+                  setPointer(null);
+                }}
                 tabIndex={0}
                 role="button"
                 aria-label={`${point.bucket.label}: ${point.bucket.count} messages`}
@@ -178,6 +211,25 @@ export default function ActivityChart({ days }: ActivityChartProps) {
             ? `${selected.label} · ${fmt(selected.count)} messages`
             : `${buckets[0]?.label} → ${buckets[buckets.length - 1]?.label}`}
         </div>
+        {hover !== null && pointer && buckets[hover]
+          ? createPortal(
+              <div
+                className="chart-tooltip"
+                role="tooltip"
+                style={{
+                  left: Math.min(pointer.x + 12, window.innerWidth - 180),
+                  top: Math.min(pointer.y + 14, window.innerHeight - 64),
+                }}
+              >
+                <strong>{buckets[hover].label}</strong>
+                <span>
+                  {fmt(buckets[hover].count)}{" "}
+                  {buckets[hover].count === 1 ? "message" : "messages"}
+                </span>
+              </div>,
+              document.body
+            )
+          : null}
         </div>
       )}
 

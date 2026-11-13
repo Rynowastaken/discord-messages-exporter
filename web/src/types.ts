@@ -550,6 +550,8 @@ export interface ExportFilters {
   channel?: string;
   from?: string;
   to?: string;
+  weekday?: number;
+  hour?: number;
 }
 
 export interface ExportsResponse {

@@ -1835,12 +1835,24 @@ function normalizeTimestamp(value: string | null, endOfDay: boolean): string {
 }
 
 function exportFilters(search: URLSearchParams): ExportFilters {
+  const weekdayRaw = search.get("weekday");
+  const hourRaw = search.get("hour");
+  const weekday = Number.parseInt(weekdayRaw ?? "", 10);
+  const hour = Number.parseInt(hourRaw ?? "", 10);
   return {
     q: (search.get("q") ?? "").trim(),
     author: (search.get("author") ?? "").trim(),
     channel: (search.get("channel") ?? "").trim(),
     from: normalizeTimestamp(search.get("from"), false),
     to: normalizeTimestamp(search.get("to"), true),
+    weekday:
+      weekdayRaw !== null && Number.isInteger(weekday) && weekday >= 0 && weekday <= 6
+        ? weekday
+        : undefined,
+    hour:
+      hourRaw !== null && Number.isInteger(hour) && hour >= 0 && hour <= 23
+        ? hour
+        : undefined,
   };
 }
 

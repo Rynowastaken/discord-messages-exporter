@@ -190,6 +190,12 @@ function filtersQuery(
     const value = filters[key];
     if (value) params.set(key, value);
   }
+  if (filters.weekday !== undefined) {
+    params.set("weekday", String(filters.weekday));
+  }
+  if (filters.hour !== undefined) {
+    params.set("hour", String(filters.hour));
+  }
   for (const [key, value] of Object.entries(extra)) {
     params.set(key, String(value));
   }

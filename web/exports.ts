@@ -139,6 +139,8 @@ export interface ExportFilters {
   channel?: string;
   from?: string;
   to?: string;
+  weekday?: number;
+  hour?: number;
 }
 
 export interface ExportStats {
@@ -1204,6 +1206,14 @@ function buildFilter(
     clauses.push("m.timestamp <= ?");
     params.push(filters.to);
   }
+  if (filters.weekday !== undefined) {
+    clauses.push("CAST(strftime('%w', m.timestamp) AS INTEGER) = ?");
+    params.push(filters.weekday);
+  }
+  if (filters.hour !== undefined) {
+    clauses.push("CAST(strftime('%H', m.timestamp) AS INTEGER) = ?");
+    params.push(filters.hour);
+  }
   return {
     from,
     where: clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "",
@@ -1217,7 +1227,9 @@ function hasFilters(filters: ExportFilters): boolean {
       filters.author ||
       filters.channel ||
       filters.from ||
-      filters.to
+      filters.to ||
+      filters.weekday !== undefined ||
+      filters.hour !== undefined
   );
 }
 
@@ -1606,7 +1618,7 @@ export function queryStats(
       "w.word AS word, SUM(w.count) AS count",
       "w.word",
       "count DESC, w.word ASC",
-      18
+      40
     );
 
     const attachmentMessages = db

@@ -10,7 +10,7 @@ export default function WordCloud({ exportId, words }: WordCloudProps) {
   const max = Math.max(1, ...words.map((word) => word.count));
   const min = Math.min(...words.map((word) => word.count));
   return (
-    <article className="insight-panel">
+    <article className="insight-panel word-cloud-panel">
       <header className="insight-panel-head">
         <div>
           <span className="module-kicker">Words</span>
