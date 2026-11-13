@@ -31,12 +31,12 @@ export function exportModeLabel(item: ExportSummary): string {
     const channel = item.metadata?.channel?.name;
     return channel ? `Author · ${channel}` : "One author";
   }
-  return item.kind === "job" ? "Job export" : "Loaded file";
+  return item.kind === "job" ? "Exported here" : "Imported file";
 }
 
 export function exportScopeLine(item: ExportSummary): string {
   const metadata = item.metadata;
-  if (!metadata) return item.kind === "job" ? "Job export" : "Loaded file";
+  if (!metadata) return item.kind === "job" ? "Exported here" : "Imported file";
   if (inferredMode(metadata) === "server") {
     const channels = metadata.channels?.length ?? 0;
     return `${metadata.guild?.name ?? "Server"}${

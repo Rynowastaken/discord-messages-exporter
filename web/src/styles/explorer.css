@@ -271,6 +271,17 @@
   gap: 14px;
   padding: 13px 16px;
   border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.recent-export:hover {
+  background: rgba(255, 255, 255, .035);
+}
+
+.recent-export:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
 .recent-export:last-child {
@@ -289,6 +300,15 @@
   font-size: .84rem;
   font-weight: 500;
   line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-export-source {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2283,6 +2303,16 @@ a.message-embed-title:hover {
   overflow: hidden;
   font-size: .72rem;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-export-source {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--faint);
+  font-size: .6rem;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

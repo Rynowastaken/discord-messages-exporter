@@ -7,6 +7,7 @@ import {
   Radio,
 } from "lucide-react";
 import { api } from "../api";
+import { exportScopeLine } from "../lib/exportView";
 import { compact } from "../lib/format";
 import type { ExportSummary, UpdateInfo } from "../types";
 
@@ -107,9 +108,12 @@ export default function TopBar({
               }`}
               href={`#/explorer/${encodeURIComponent(item.id)}/messages`}
               aria-current={item.id === exportId ? "page" : undefined}
-              title={item.name}
+              title={`${item.name} · ${exportScopeLine(item)}`}
             >
               <span>{item.name}</span>
+              <span className="sidebar-export-source">
+                {exportScopeLine(item)}
+              </span>
               <span>
                 {item.message_count === null
                   ? item.status

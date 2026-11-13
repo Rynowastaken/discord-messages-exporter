@@ -12,6 +12,8 @@ import {
 import Greeting from "../components/Greeting";
 import SectionHeading from "../components/SectionHeading";
 import { api } from "../api";
+import { navigate } from "../hooks/useHashRoute";
+import { exportScopeLine } from "../lib/exportView";
 import { bytes, compact, plural, shortDate } from "../lib/format";
 import type { UseJobs } from "../hooks/useJobs";
 import type { ExportSummary, Identity } from "../types";
@@ -106,7 +108,7 @@ export default function DashboardPage({
             <span className="module-icon" aria-hidden="true">
               <Radio size={18} strokeWidth={1.5} />
             </span>
-            <span className="module-kicker">01 · Export</span>
+            <span className="module-kicker">Export</span>
             <h2 className="module-title">
               {activeJob ? "Export in progress" : "Create an export"}
             </h2>
@@ -132,7 +134,7 @@ export default function DashboardPage({
             <span className="module-icon" aria-hidden="true">
               <FolderOpen size={18} strokeWidth={1.5} />
             </span>
-            <span className="module-kicker">02 · Explorer</span>
+            <span className="module-kicker">Explorer</span>
             <h2 className="module-title">
               {exports.length ? "Browse your archive" : "Load an export"}
             </h2>
@@ -167,20 +169,18 @@ export default function DashboardPage({
             <span className="module-icon" aria-hidden="true">
               <BarChart3 size={18} strokeWidth={1.5} />
             </span>
-            <span className="module-kicker">03 · Insights</span>
-            <h2 className="module-title" title={latest?.name}>
-              {latest ? latest.name : "Open an export's insights"}
-            </h2>
+            <span className="module-kicker">Insights</span>
+            <h2 className="module-title">Open insights</h2>
             <p className="module-copy">
               Activity, posting clock, and top authors.
             </p>
             <span className="module-meta">
               {latest
-                ? `${
+                ? `Latest: ${latest.name} · ${
                     latest.message_count === null
                       ? "not indexed yet"
                       : plural(latest.message_count, "message", "messages")
-                  } · ${latest.kind === "job" ? "exported here" : "imported file"}`
+                  }`
                 : "Open an export to see its insights"}
             </span>
             <ArrowUpRight
@@ -225,9 +225,34 @@ export default function DashboardPage({
         {exports.length ? (
           <div className="recent-exports">
             {exports.slice(0, 6).map((item) => (
-              <div className="recent-export" key={item.id}>
+              <div
+                className="recent-export"
+                key={item.id}
+                role="link"
+                tabIndex={0}
+                title={`Open ${item.name}`}
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest("a, button")) {
+                    return;
+                  }
+                  navigate(
+                    `/explorer/${encodeURIComponent(item.id)}/messages`
+                  );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(
+                      `/explorer/${encodeURIComponent(item.id)}/messages`
+                    );
+                  }
+                }}
+              >
                 <div className="recent-export-main">
                   <span className="recent-export-name">{item.name}</span>
+                  <span className="recent-export-source">
+                    {exportScopeLine(item)}
+                  </span>
                   <span className="recent-export-meta">
                     {item.kind === "job" ? "Exported here" : "Imported file"} ·{" "}
                     {bytes(item.size_bytes)} ·{" "}

@@ -11,35 +11,10 @@ import {
 import SectionHeading from "../components/SectionHeading";
 import { api } from "../api";
 import { navigate } from "../hooks/useHashRoute";
+import { exportScopeLine } from "../lib/exportView";
 import { bytes, compact, plural, shortDate } from "../lib/format";
 import type { ExportSummary } from "../types";
 
-function modeLabel(item: ExportSummary): string {
-  const mode =
-    item.metadata?.mode ??
-    (item.metadata?.target_user_id
-      ? "author"
-      : (item.metadata?.channels?.length ?? 0) > 0
-        ? "server"
-        : item.metadata?.channel
-          ? "channel"
-          : undefined);
-  if (mode === "server") {
-    return item.metadata?.guild?.name
-      ? `Server · ${item.metadata.guild.name}`
-      : "Whole server";
-  }
-  if (mode === "channel") {
-    return item.metadata?.channel?.name
-      ? `Channel · #${item.metadata.channel.name}`
-      : "Whole channel";
-  }
-  if (mode === "author") {
-    const channel = item.metadata?.channel?.name;
-    return channel ? `Author · ${channel}` : "One author";
-  }
-  return item.kind === "job" ? "Exported here" : "Imported file";
-}
 
 export default function ExplorerPage() {
   const [exports, setExports] = useState<ExportSummary[]>([]);
@@ -249,7 +224,7 @@ export default function ExplorerPage() {
                 </div>
 
                 <p className="export-row-meta">
-                  {modeLabel(item)} · {bytes(item.size_bytes)} ·{" "}
+                  {exportScopeLine(item)} · {bytes(item.size_bytes)} ·{" "}
                   {item.message_count === null
                     ? "not indexed"
                     : plural(item.message_count, "message", "messages")}{" "}

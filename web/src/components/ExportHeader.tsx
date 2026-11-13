@@ -1,7 +1,7 @@
 import { ArrowLeft, Download } from "lucide-react";
 import { api } from "../api";
 import { bytes, compact, shortDate } from "../lib/format";
-import { exportModeLabel } from "../lib/exportView";
+import { exportScopeLine } from "../lib/exportView";
 import type { ExportSummary } from "../types";
 
 interface ExportHeaderProps {
@@ -21,23 +21,15 @@ export default function ExportHeader({ item, active }: ExportHeaderProps) {
               Explorer
             </a>
             <span className="export-kind">
-              {item.kind === "job" ? "Job" : "Loaded"}
+              {item.kind === "job" ? "Exported" : "Imported"}
             </span>
           </div>
           <h1 className="export-page-name">{item.name}</h1>
           <p className="export-page-meta">
-            {exportModeLabel(item)}
+            {exportScopeLine(item)}
             {item.metadata?.mode === "author" &&
             item.metadata?.target_user_id
               ? ` · user ${item.metadata.target_user_id}`
-              : ""}
-            {item.metadata?.mode === "server" &&
-            item.metadata.channels?.length
-              ? ` · ${item.metadata.channels.length} ${
-                  item.metadata.channels.length === 1
-                    ? "channel"
-                    : "channels"
-                }`
               : ""}{" "}
             · {bytes(item.size_bytes)} ·{" "}
             {item.message_count === null

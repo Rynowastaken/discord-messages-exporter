@@ -702,6 +702,7 @@ async function runScenario(page, scenario, report, browserErrors) {
     height,
     mobile = false,
     prepare,
+    expect,
     keepTokenGate = false,
   } = scenario;
   await page.viewport(width, height, mobile);
@@ -729,6 +730,15 @@ async function runScenario(page, scenario, report, browserErrors) {
     new Promise((resolve) => setTimeout(resolve, 2500)),
   ])`);
   await sleep(200);
+  if (expect) {
+    const passed = await page.evaluate(expect);
+    if (!passed) {
+      browserErrors.push({
+        name,
+        errors: [`expectation failed: ${expect}`],
+      });
+    }
+  }
   const audit = await page.evaluate(`(${auditPage.toString()})()`);
   const errors = page.errors();
   const file = join(SHOT_DIR, `${name}.png`);
@@ -866,6 +876,21 @@ async function main() {
         keepTokenGate: true,
       },
       { name: "dashboard-desktop", path: "/", width: 1440, height: 1000 },
+      {
+        name: "dashboard-recent-open-desktop",
+        path: "/",
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.evaluate(
+            "document.querySelector('.recent-export')?.click()"
+          );
+          await page.waitFor(
+            `location.hash.includes("/messages") && Boolean(document.querySelector(".message-row"))`
+          );
+        },
+        expect: `location.hash.includes("/messages")`,
+      },
       { name: "export-desktop", path: "/export", width: 1440, height: 1000 },
       { name: "explorer-desktop", path: "/explorer", width: 1440, height: 1000 },
       {
