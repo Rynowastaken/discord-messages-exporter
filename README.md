@@ -6,7 +6,7 @@ Export messages from Discord — one person, one channel, or an entire server �
 
 [**Download the latest release →**](https://github.com/Rynowastaken/discord-messages-exporter/releases/latest)
 
-Windows · Linux · Everything stays on your machine
+Windows · Linux · Your archive stays on your machine
 
 ![The Insights page showing message stats, activity over time, and the posting clock](docs/screenshots/insights.webp)
 
