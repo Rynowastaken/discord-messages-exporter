@@ -473,6 +473,12 @@ function auditPage() {
     );
   }
 
+  function overlayOf(element) {
+    return element.closest(
+      ".picker-menu[data-state='open'], .settings-dialog[open], .token-dialog, .token-gate, .message-detail"
+    );
+  }
+
   function receivesPointer(element) {
     const rect = element.getBoundingClientRect();
     const x = Math.min(
@@ -583,6 +589,9 @@ function auditPage() {
     for (let second = first + 1; second < overlapControls.length; second += 1) {
       const b = overlapControls[second];
       if (a.contains(b) || b.contains(a)) continue;
+      const overlayA = overlayOf(a);
+      const overlayB = overlayOf(b);
+      if (overlayA !== overlayB && (overlayA || overlayB)) continue;
       const rb = b.getBoundingClientRect();
       const overlapX =
         Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
@@ -675,11 +684,22 @@ function auditPage() {
 }
 
 async function runScenario(page, scenario, report, browserErrors) {
-  const { name, path, width, height, mobile = false, prepare } = scenario;
+  const {
+    name,
+    path,
+    width,
+    height,
+    mobile = false,
+    prepare,
+    keepTokenGate = false,
+  } = scenario;
   await page.viewport(width, height, mobile);
   await page.navigate(`${report.baseUrl}/#${path}`);
   await page.waitFor("Boolean(document.querySelector('.shell'))");
-  if (await page.evaluate("Boolean(document.querySelector('.token-gate'))")) {
+  if (
+    !keepTokenGate &&
+    (await page.evaluate("Boolean(document.querySelector('.token-gate'))"))
+  ) {
     await page.clickText("Browse without a token");
     await sleep(450);
   }
@@ -819,6 +839,21 @@ async function main() {
 
     const fixture = FIXTURE_ID;
     const scenarios = [
+      {
+        name: "token-prompt-desktop",
+        path: "/",
+        width: 1440,
+        height: 1000,
+        keepTokenGate: true,
+      },
+      {
+        name: "token-prompt-mobile",
+        path: "/",
+        width: 390,
+        height: 844,
+        mobile: true,
+        keepTokenGate: true,
+      },
       { name: "dashboard-desktop", path: "/", width: 1440, height: 1000 },
       { name: "export-desktop", path: "/export", width: 1440, height: 1000 },
       { name: "explorer-desktop", path: "/explorer", width: 1440, height: 1000 },
@@ -838,6 +873,18 @@ async function main() {
             "document.querySelector('.message-row')?.click()"
           );
           await sleep(350);
+        },
+      },
+      {
+        name: "messages-menu-desktop",
+        path: `/explorer/${fixture}/messages`,
+        width: 1440,
+        height: 1000,
+        prepare: async (page) => {
+          await page.clickText("All authors");
+          await page.waitFor(
+            `Boolean(document.querySelector(".picker-menu[data-state='open']"))`
+          );
         },
       },
       {
